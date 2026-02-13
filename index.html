@@ -274,6 +274,21 @@ let userPFP=localStorage.getItem("pfp")||"https://via.placeholder.com/36";
 let isOwner=false;
 let firstMessageLoaded=false;
 
+// --- PAGE TITLE NOTIFICATIONS ---
+const originalTitle = document.title;
+let unreadCount = 0;
+let windowFocused = true;
+
+window.addEventListener("focus", () => {
+  windowFocused = true;
+  unreadCount = 0;
+  document.title = originalTitle;
+});
+
+window.addEventListener("blur", () => {
+  windowFocused = false;
+});
+  
 messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
 
 function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
@@ -403,4 +418,5 @@ loopBtn.onclick=()=>{ loop=!loop; loopBtn.style.background=loop?"#2563eb":"#1e3a
 
 </body>
 </html>
+
 
