@@ -330,11 +330,6 @@ ts: Date.now()
 messageInput.value="";
 };
 
-onChildAdded(messagesQuery, snap=>{
-const m=snap.val();
-addMessage(m.name||"PLAYER", m.text||"", m.img||"https://via.placeholder.com/36", m.time||timeNow(), snap.key);
-});
-
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
 
@@ -436,6 +431,7 @@ loopBtn.onclick=()=>{ loop=!loop; loopBtn.style.background=loop?"#2563eb":"#1e3a
 
 </body>
 </html>
+
 
 
 
