@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Silkscreen Chat</title>
+
+<!-- Minecraftia font -->
+<link href="https://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+width: 100%;
+height: 100%;
+font-family: 'Minecraftia', monospace;
+background: black;
+color: #c7d2fe;
+overflow: hidden;
+}
+
+body {
+background: linear-gradient(270deg, #000000, #020617, #020617, #000814);
+background-size: 400% 400%;
+animation: bgFade 12s ease infinite;
+}
+
+@keyframes bgFade {
+0% { background-position: 0% 50%; }
+50% { background-position: 100% 50%; }
+100% { background-position: 0% 50%; }
+}
+
+@keyframes shake {
+0% { transform: translateX(0); }
+25% { transform: translateX(-5px); }
+50% { transform: translateX(5px); }
+75% { transform: translateX(-5px); }
+100% { transform: translateX(0); }
+}
+
+/* CHAT */
+.chat-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; position: relative; }
+
+.chat-loading {
+position: absolute;
+top: 0; left: 0;
+width: 100%;
+height: 100%;
+background: rgba(0,0,0,0.85);
+display: flex;
+flex-direction: column;
+justify-content: center;
+align-items: center;
+color: #c7d2fe;
+font-family: 'Minecraftia', monospace;
+font-size: 14px;
+z-index: 1000;
+transition: opacity 0.5s ease;
+}
+
+.loader {
+width: 40px;
+height: 40px;
+border: 4px solid #1e3a8a;
+border-top: 4px solid #2563eb;
+border-radius: 50%;
+animation: spin 1s linear infinite;
+margin-bottom: 10px;
+}
+
+@keyframes spin {
+0% { transform: rotate(0deg); }
+100% { transform: rotate(360deg); }
+}
+
+.chat-box { flex: 1; padding: 16px; overflow-y: auto; opacity: 0; transition: opacity 0.5s ease; }
+.chat-box.loaded { opacity: 1; }
+
+.message { display: flex; margin-bottom: 14px; align-items: flex-end; animation: msgIn 0.25s ease-out; }
+@keyframes msgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.message.user { justify-content: flex-end; }
+.message.other { justify-content: flex-start; }
+.message img { width: 36px; height: 36px; border: 2px solid #1e3a8a; border-radius: 4px; margin: 0 8px; }
+.bubble { max-width: 65%; padding: 12px 16px; border: 2px solid #1e3a8a; background: #020617; font-size: 14px; position: relative; }
+.user .bubble { background: linear-gradient(#0b1f4b, #081636); }
+.name { font-size: 11px; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+.name .owner-star { color: orange; font-size: 12px; }
+.time { font-size: 9px; opacity: 0.6; margin-top: 6px; text-align: right; }
+
+/* DELETE BUTTON - PIXEL TRASHCAN */
+.bubble button {
+background: black;
+border: 2px solid grey;
+color: grey;
+font-family: monospace;
+font-weight: bold;
+cursor: pointer;
+padding: 2px 4px;
+margin-left: 6px;
+}
+.bubble button:hover { background: grey; color: black; }
+
+/* INPUT */
+.input-box { display: flex; align-items: center; border-top: 2px solid #1e3a8a; }
+.input-box input { flex: 1; padding: 14px; background: transparent; border: none; color: #e0e7ff; font-family: inherit; }
+.input-box button { padding: 14px 22px; font-family: inherit; background: #1e3a8a; border: none; color: white; cursor: pointer; }
+
+.connection-indicator {
+width: 14px;
+height: 14px;
+border-radius: 50%;
+background: gray;
+margin: 0 8px 0 10px; /* move slightly to right */
+flex-shrink: 0;
+cursor: help;
+transition: background 0.3s ease;
+}
+
+/* SETTINGS */
+.settings-btn { position: fixed; top: 12px; right: 12px; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; font-family: inherit; padding: 6px 10px; cursor: pointer; z-index: 1001; }
+.settings-panel { position: fixed; top: 0; right: -400px; width: 400px; height: 100%; background: #020617; border-left: 2px solid #1e3a8a; padding: 14px; transition: right 0.35s ease; z-index: 1000; font-family: inherit; display: flex; flex-direction: column; overflow-y: auto; }
+.settings-panel.open { right: 0; }
+.settings-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tab { flex: 1; font-family: inherit; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; padding: 6px; cursor: pointer; font-size: 11px; }
+.tab.active { background: #1e3a8a; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.tab-btn { margin-top: 10px; width: 100%; padding: 10px; font-family: inherit; background: #1e3a8a; border: 2px solid #1e3a8a; color: white; cursor: pointer; }
+.tab-btn:hover { background: #2563eb; }
+
+label { display: block; font-size: 11px; margin: 8px 0 4px; }
+input[type="file"], input[type="text"], input[type="password"] { width: 100%; padding: 6px; font-family: inherit; background: black; border: 2px solid #1e3a8a; color: #e0e7ff; }
+
+#loginFeedback { display: inline-block; margin-left: 6px; font-size: 11px; }
+
+/* SONGS LIST */
+.song { padding: 8px; border: 2px solid #1e3a8a; margin-top: 6px; font-size: 11px; }
+.song:hover { background: #1e3a8a; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<button class="settings-btn" onclick="toggleSettings()">⚙</button>
+
+<div class="settings-panel" id="settingsPanel">
+<div class="settings-tabs">
+<button class="tab active" onclick="openTab('music')">MUSIC</button>
+<button class="tab" onclick="openTab('custom')">CUSTOM</button>
+<button class="tab" onclick="openTab('login')">LOGIN</button>
+</div>
+
+<!-- MUSIC TAB -->
+<div class="tab-content active" id="music">
+<div class="music-player">
+<div class="music-cover">
+<img id="albumCover" src="https://via.placeholder.com/300?text=NO+COVER">
+<input type="file" accept="image/*" id="coverUpload">
+</div>
+
+<label>Song Progress: <span id="progressTime">0:00</span></label>
+<input type="range" min="0" max="100" value="0" id="songProgress">
+
+<div class="controls">
+<button class="control-btn" id="prevBtn">⏮</button>
+<button class="control-btn" id="playBtn">▶️</button>
+<button class="control-btn" id="nextBtn">⏭</button>
+<button class="control-btn" id="loopBtn">🔁</button>
+</div>
+
+<label>Volume: <span id="volumeValue">100%</span></label>
+<input type="range" min="0" max="100" value="100" id="volumeSlider">
+
+<label>Reverb: <span id="reverbValue">0%</span></label>
+<input type="range" min="0" max="50" step="1" value="0" id="reverbSlider">
+
+<label>Add Songs (MP3)</label>
+<input type="file" accept="audio/mp3" multiple id="songUpload">
+
+<h4>Songs:</h4>
+<div id="songList"></div>
+</div>
+</div>
+
+<!-- CUSTOM TAB -->
+<div class="tab-content" id="custom">
+<label>USERNAME</label>
+<input id="usernameInput" placeholder="Enter username">
+
+<label>PROFILE IMAGE</label>
+<input type="file" accept="image/*" id="pfpUpload">
+
+<button class="tab-btn" onclick="saveProfile()">SAVE PROFILE</button>
+</div>
+
+<!-- LOGIN TAB -->
+<div class="tab-content" id="login">
+<label>USERNAME</label>
+<input id="loginUsername">
+<span id="loginFeedback"></span>
+
+<label>PASSWORD</label>
+<input type="password" id="loginPassword">
+<button class="tab-btn" onclick="login()">LOGIN</button>
+
+<div id="ownerPanel" style="display:none;">
+<h3>Owner Panel</h3>
+<div class="user-list" id="userList"></div>
+</div>
+</div>
+</div>
+
+<div class="chat-container">
+<div class="chat-loading" id="chatLoading">
+<div class="loader"></div>
+<span>Loading messages...</span>
+</div>
+<div class="chat-box" id="chatBox"></div>
+<div class="input-box">
+<div class="connection-indicator" id="connectionIndicator" title="Checking connection..."></div>
+<input id="messageInput" placeholder="TYPE MESSAGE...">
+<button onclick="sendMessage()">SEND</button>
+</div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import {
+getDatabase, ref, push, onChildAdded, remove, child, query, limitToLast, onValue
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+/* Firebase setup */
+const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"w0lfchat.firebaseapp.com", databaseURL:"https://w0lfchat-default-rtdb.firebaseio.com/", projectId:"w0lfchat", storageBucket:"w0lfchat.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const messagesRootRef = ref(db, "messages");
+const messagesQuery = query(messagesRootRef, limitToLast(100));
+
+/* Connection Indicator */
+const connectionIndicator = document.getElementById("connectionIndicator");
+function updateConnectionStatus() {
+const connectedRef = ref(db, ".info/connected");
+onValue(connectedRef, snap => {
+if(snap.val()===true){
+let color="blue", tooltip="🔵 - great connection.";
+if(navigator.connection && navigator.connection.effectiveType){
+switch(navigator.connection.effectiveType){
+case "4g": color="blue"; tooltip="🔵 - great connection."; break;
+case "3g": color="green"; tooltip="🟢 - good connection."; break;
+case "2g": color="yellow"; tooltip="🟡 - okay connection."; break;
+case "slow-2g": color="orange"; tooltip="🟠 - bad connection."; break;
+default: color="red"; tooltip="🔴 - terrible connection.";
+}
+}
+connectionIndicator.style.background=color;
+connectionIndicator.title=tooltip;
+}else{
+connectionIndicator.style.background="red";
+connectionIndicator.title="🔴 - terrible connection.";
+}
+});
+}
+updateConnectionStatus();
+setInterval(updateConnectionStatus,5000);
+
+/* Chat */
+const chatBox=document.getElementById("chatBox");
+const messageInput=document.getElementById("messageInput");
+const chatLoading = document.getElementById("chatLoading");
+let username=localStorage.getItem("username")||"PLAYER";
+let userPFP=localStorage.getItem("pfp")||"https://via.placeholder.com/36";
+let isOwner=false;
+let firstMessageLoaded=false;
+
+messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
+
+function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+
+function addMessage(name,text,img,time,key){
+const m=document.createElement("div");
+const side=name===username?"user":"other";
+m.className=`message ${side}`;
+m.dataset.key=key;
+let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
+let bubbleHTML = `${side==="other"?`<img src="${img}">`:``}<div class="bubble"><div class="name">${name}${ownerStar}</div>${text}<div class="time">${time}</div></div>${side==="user"?`<img src="${img}">`:``}`;
+m.innerHTML=bubbleHTML;
+if(side==="user"||isOwner){
+const delBtn=document.createElement("button");
+delBtn.textContent="🗑";
+delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
+m.querySelector(".bubble").appendChild(delBtn);
+}
+chatBox.appendChild(m);
+chatBox.scrollTop=chatBox.scrollHeight;
+
+if(!firstMessageLoaded){
+firstMessageLoaded=true;
+chatLoading.style.opacity=0;
+chatBox.classList.add("loaded");
+setTimeout(()=>{ chatLoading.style.display="none"; },500);
+}
+}
+
+window.sendMessage=()=>{
+if(!messageInput.value.trim()) return;
+push(messagesRootRef,{
+name: username,
+text: messageInput.value,
+img: userPFP,
+time: timeNow(),
+ts: Date.now()
+});
+messageInput.value="";
+};
+
+onChildAdded(messagesQuery, snap=>{
+const m=snap.val();
+addMessage(m.name||"PLAYER", m.text||"", m.img||"https://via.placeholder.com/36", m.time||timeNow(), snap.key);
+});
+
+/* SETTINGS */
+window.toggleSettings=()=>document.getElementById("settingsPanel").classList.toggle("open");
+window.openTab=id=>{
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+document.querySelector(`[onclick="openTab('${id}')"]`).classList.add("active");
+document.getElementById(id).classList.add("active");
+};
+
+/* Profile */
+window.saveProfile=()=>{
+const usernameInput=document.getElementById("usernameInput");
+if(usernameInput.value.trim()){ username=usernameInput.value.trim(); localStorage.setItem("username",username); }
+const pfpUpload=document.getElementById("pfpUpload");
+if(pfpUpload.files[0]){
+const reader=new FileReader();
+reader.onload=e=>{ userPFP=e.target.result; localStorage.setItem("pfp",userPFP); };
+reader.readAsDataURL(pfpUpload.files[0]);
+}
+alert("Profile saved!");
+};
+
+/* Owner Login */
+const ownerUsername="wolf";
+const ownerPassword="katenlen1";
+const loginFeedback=document.getElementById("loginFeedback");
+const ownerPanel=document.getElementById("ownerPanel");
+const loginUsernameInput=document.getElementById("loginUsername");
+const loginPasswordInput=document.getElementById("loginPassword");
+
+function login(){
+const u=loginUsernameInput.value;
+const p=loginPasswordInput.value;
+if(u===ownerUsername&&p===ownerPassword){
+isOwner=true;
+loginFeedback.textContent="welcome owner!";
+loginFeedback.style.color="orange";
+ownerPanel.style.display="block";
+loginUsernameInput.style.display="none";
+loginPasswordInput.style.display="none";
+document.querySelector("#login button").style.display="none";
+}else{
+loginFeedback.textContent="incorrect.";
+loginFeedback.style.color="red";
+document.body.style.animation="shake 0.3s";
+setTimeout(()=>{ document.body.style.animation=""; },300);
+}
+}
+
+/* MUSIC PLAYER - SONG LIST */
+const coverUpload=document.getElementById("coverUpload");
+const albumCover=document.getElementById("albumCover");
+const songUpload=document.getElementById("songUpload");
+const songListDiv=document.getElementById("songList");
+
+let songs=[],currentIndex=0,loop=false;
+const audioElem=new Audio();
+const playBtn=document.getElementById("playBtn");
+const nextBtn=document.getElementById("nextBtn");
+const prevBtn=document.getElementById("prevBtn");
+const loopBtn=document.getElementById("loopBtn");
+
+coverUpload.onchange=e=>{ const r=new FileReader(); r.onload=ev=>albumCover.src=ev.target.result; r.readAsDataURL(e.target.files[0]); };
+songUpload.onchange=e=>{
+for(const f of e.target.files){
+const url=URL.createObjectURL(f);
+songs.push({name:f.name,url});
+const div=document.createElement("div");
+div.className="song";
+div.textContent=f.name;
+div.onclick=()=>{ audioElem.src=url; audioElem.play(); playBtn.textContent="⏸"; };
+songListDiv.appendChild(div);
+}
+};
+
+playBtn.onclick=()=>{ if(audioElem.paused){ audioElem.play(); playBtn.textContent="⏸"; }else{ audioElem.pause(); playBtn.textContent="▶️"; } };
+nextBtn.onclick=()=>{ if(songs.length===0) return; currentIndex=(currentIndex+1)%songs.length; audioElem.src=songs[currentIndex].url; audioElem.play(); };
+prevBtn.onclick=()=>{ if(songs.length===0) return; currentIndex=(currentIndex-1+songs.length)%songs.length; audioElem.src=songs[currentIndex].url; audioElem.play(); };
+loopBtn.onclick=()=>{ loop=!loop; loopBtn.style.background=loop?"#2563eb":"#1e3a8a"; };
+</script>
+
+</body>
+</html>
