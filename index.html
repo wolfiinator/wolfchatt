@@ -335,6 +335,24 @@ const m=snap.val();
 addMessage(m.name||"PLAYER", m.text||"", m.img||"https://via.placeholder.com/36", m.time||timeNow(), snap.key);
 });
 
+onChildAdded(messagesQuery, snap => {
+  const m = snap.val();
+
+  addMessage(
+    m.name || "PLAYER",
+    m.text || "",
+    m.img || "https://via.placeholder.com/36",
+    m.time || timeNow(),
+    snap.key
+  );
+
+  // 🔔 Update page title notifications
+  if (!windowFocused && m.name !== username) {
+    unreadCount++;
+    document.title = `(${unreadCount}) ${originalTitle}`;
+  }
+});
+
 /* SETTINGS */
 window.toggleSettings=()=>document.getElementById("settingsPanel").classList.toggle("open");
 window.openTab=id=>{
@@ -418,5 +436,6 @@ loopBtn.onclick=()=>{ loop=!loop; loopBtn.style.background=loop?"#2563eb":"#1e3a
 
 </body>
 </html>
+
 
 
