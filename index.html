@@ -280,6 +280,8 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 <label>Last.fm Username</label>
 <input id="lastFmUsername" placeholder="Enter Last.fm username">
 <button class="tab-btn" id="setLastFmBtn">CONNECT</button>
+<button class="tab-btn" id="disconnectLastFmBtn">DISCONNECT</button>
+<button class="tab-btn" id="reconnectLastFmBtn">RECONNECT</button>
 
 <div id="lastFmStatus" style="margin-top:12px; font-size:11px; opacity:0.7;">
 Not connected.
@@ -857,6 +859,34 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+// --- Disconnect Last.fm ---
+document.getElementById("disconnectLastFmBtn").onclick = () => {
+  localStorage.removeItem("lastFmUser");
+  document.getElementById("lastFmUsername").value = "";
+  lastFmStatus.textContent = "Not connected.";
+  lastFmNowPlaying.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
+  document.getElementById("nowPlayingPanel").style.display = "none";
+  showStatusPopup("Disconnected from Last.fm");
+};
+
+// --- Reconnect Last.fm ---
+document.getElementById("reconnectLastFmBtn").onclick = async () => {
+  const username = localStorage.getItem("lastFmUser");
+  if(!username) return showStatusPopup("No Last.fm account to reconnect", 2000);
+
+  document.getElementById("lastFmUsername").value = username;
+  lastFmStatus.textContent = `Connected as ${username}`;
+  showStatusPopup("Reconnecting...");
+
+  try {
+    await updateLastFmPresence();
+    showStatusPopup("Reconnected to Last.fm!");
+  } catch(e){
+    showStatusPopup("Failed to reconnect", 2000);
+    console.error(e);
+  }
+};
+
 </script>
 <div id="profileModal" class="profile-modal">
   <div class="profile-card">
@@ -879,3 +909,4 @@ window.addEventListener("DOMContentLoaded", () => {
 </div>
 </body>
 </html>
+
