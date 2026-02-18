@@ -703,81 +703,75 @@ function showStatusPopup(message, duration=1500) {
 
 // ===== LAST.FM RICH PRESENCE =====
 async function getNowPlaying(username) {
-    if (!username) return null;
+    if(!username) return null;
 
-    const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`;
-    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`)}`;
 
     try {
-        const res = await fetch(proxy);
-        if (!res.ok) throw new Error("Network response was not OK");
+        const res = await fetch(url);
+if(!res.ok) return null;
 
-        const data = await res.json();
-        const wrapped = JSON.parse(data.contents); // AllOrigins returns JSON as text
+const wrapped = await res.json();
+const data = JSON.parse(wrapped.contents);
 
-        const track = wrapped.recenttracks.track[0];
+        const track = data.recenttracks.track[0];
 
         return {
             title: track.name || "Unknown",
             artist: track.artist?.["#text"] || "Unknown",
             album: track.album?.["#text"] || "",
-            cover: track.image?.length ? track.image[track.image.length - 1]["#text"] : "",
+            cover: track.image?.length ? track.image[track.image.length-1]["#text"] : "",
             nowPlaying: track["@attr"]?.nowplaying === "true"
         };
-    } catch (e) {
+    } catch(e){
         console.error("getNowPlaying error:", e);
         return null;
     }
 }
 
 document.getElementById("setLastFmBtn").onclick = async () => {
-    let input = document.getElementById("lastFmUsername").value.trim();
-    if (!input) return alert("Enter your Last.fm username or profile link.");
+    const input = document.getElementById("lastFmUsername").value.trim();
+    if(!input) return alert("Enter your Last.fm username or profile link.");
 
     let extractedUsername = input;
 
-    // Extract username if input is a profile URL
-try {
-    const url = new URL(input);
-    if (url.hostname.includes("last.fm")) {
-        const parts = url.pathname.split("/");
-        const userIndex = parts.indexOf("user");
-        if (userIndex !== -1 && parts[userIndex + 1]) {
-            extractedUsername = parts[userIndex + 1];
+    try {
+        const url = new URL(input);
+        if (url.hostname.includes("last.fm")) {
+            const parts = url.pathname.split("/");
+            const userIndex = parts.indexOf("user");
+            if (userIndex !== -1 && parts[userIndex + 1]) {
+                extractedUsername = parts[userIndex + 1];
+            }
         }
+    } catch {}
+
+    showStatusPopup("Connecting...");
+
+    try {
+    const res = await fetch(
+      `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
+      );
+
+        const data = await res.json();
+
+        if(data.error){
+            showStatusPopup("Failed - account does not exist", 3000);
+            return;
+        }
+
+        // ✅ Account exists — save it
+        localStorage.setItem("lastFmUser", extractedUsername);
+        lastFmStatus.textContent = `Connected as ${extractedUsername}`;
+        showStatusPopup("Connected!");
+
+        updateLastFmPresence();
+
+    } catch(e) {
+        showStatusPopup("Network error - try again", 3000);
+        console.error(e);
     }
-} catch {}
-
-// Show connecting popup
-showStatusPopup("Connecting...");
-
-try {
-    // Last.fm API URL
-    const lastFmUrl = `https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`;
-    // Wrap in AllOrigins proxy to avoid CORS
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(lastFmUrl)}`;
-
-    const res = await fetch(proxyUrl);
-    if (!res.ok) throw new Error("Network response was not OK");
-
-    // AllOrigins wraps the response in `contents`
-    const wrappedData = await res.json();
-    const data = JSON.parse(wrappedData.contents);
-
-    if (data.error) {
-        showStatusPopup("Failed - account does not exist", 3000);
-        return;
-    }
-
-    localStorage.setItem("lastFmUser", extractedUsername);
-    lastFmStatus.textContent = `Connected as ${extractedUsername}`;
-    showStatusPopup("Connected!");
-
-    await updateLastFmPresence();
-} catch (e) {
-    showStatusPopup("Network error - try again", 3000);
-    console.error(e);
-}
+};
 
 // Update profile modal & MUSIC tab
 async function updateLastFmPresence() {
@@ -918,4 +912,3 @@ document.getElementById("reconnectLastFmBtn").onclick = async () => {
 </div>
 </body>
 </html>
-
