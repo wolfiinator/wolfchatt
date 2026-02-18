@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -128,8 +129,28 @@ transition: background 0.3s ease;
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 
-.tab-btn { margin-top: 10px; width: 100%; padding: 10px; font-family: inherit; background: #1e3a8a; border: 2px solid #1e3a8a; color: white; cursor: pointer; }
-.tab-btn:hover { background: #2563eb; }
+button {
+  font-family: inherit;
+  font-size: 11px;
+  text-transform: lowercase;
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid #1e3a8a;
+  background: #0f172a;
+  color: #c7d2fe;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+button:hover {
+  background: #1e3a8a;
+  transform: translateY(-1px);
+}
+
+.tab-btn {
+  width: 100%;
+  margin-top: 6px;
+}
 
 label { display: block; font-size: 11px; margin: 8px 0 4px; }
 input[type="file"], input[type="text"], input[type="password"] { width: 100%; padding: 6px; font-family: inherit; background: black; border: 2px solid #1e3a8a; color: #e0e7ff; }
@@ -212,8 +233,6 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   font-size: 12px;
 }
 
-}
-
 .clickable-avatar:hover {
   transform: scale(1.08);
   filter: brightness(1.2);
@@ -234,54 +253,42 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 
 <!-- MUSIC TAB -->
 <div class="tab-content active" id="music">
-<div class="music-player">
-<div class="music-cover">
-<img id="albumCover" src="https://via.placeholder.com/300?text=NO+COVER">
-<input type="file" accept="image/*" id="coverUpload">
+
+<h3 style="margin-bottom:10px;">Spotify Rich Presence</h3>
+
+<button class="tab-btn" id="connectSpotifyBtn">CONNECT SPOTIFY</button>
+
+<div id="spotifyStatus" style="margin-top:12px; font-size:11px; opacity:0.7;">
+Not connected.
 </div>
 
-<label>Song Progress: <span id="progressTime">0:00</span></label>
-<input type="range" min="0" max="100" value="0" id="songProgress">
+<div id="spotifyNowPlaying" style="margin-top:12px;"></div>
 
-<div class="controls">
-<button class="control-btn" id="prevBtn">⏮</button>
-<button class="control-btn" id="playBtn">▶️</button>
-<button class="control-btn" id="nextBtn">⏭</button>
-<button class="control-btn" id="loopBtn">🔁</button>
-</div>
-
-<label>Volume: <span id="volumeValue">100%</span></label>
-<input type="range" min="0" max="100" value="100" id="volumeSlider">
-
-<label>Reverb: <span id="reverbValue">0%</span></label>
-<input type="range" min="0" max="50" step="1" value="0" id="reverbSlider">
-
-<label>Add Songs (MP3)</label>
-<input type="file" accept="audio/mp3" multiple id="songUpload">
-
-<h4>Songs:</h4>
-<div id="songList"></div>
-</div>
 </div>
 
 <!-- CUSTOM TAB -->
 <div class="tab-content" id="custom">
+
 <label>USERNAME</label>
 <input id="usernameInput" placeholder="Enter username">
+<button class="tab-btn" id="setUsernameBtn">SET USERNAME</button>
 
 <label>PROFILE IMAGE</label>
 <input type="file" accept="image/*" id="pfpUpload">
+<button class="tab-btn" id="setPfpBtn">SET PROFILE IMAGE</button>
 
 <label>DISPLAY NAME</label>
 <input id="displayNameInput" placeholder="Enter display name">
+<button class="tab-btn" id="setDisplayNameBtn">SET DISPLAY NAME</button>
 
 <label>PRONOUNS</label>
 <input id="pronounsInput" placeholder="e.g. he/him">
+<button class="tab-btn" id="setPronounsBtn">SET PRONOUNS</button>
 
 <label>BIO</label>
 <input id="bioInput" placeholder="Write something cool...">
+<button class="tab-btn" id="setBioBtn">SET BIO</button>
 
-<button class="tab-btn" onclick="saveProfile()">SAVE PROFILE</button>
 </div>
 
 <!-- LOGIN TAB -->
@@ -313,6 +320,8 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 <button onclick="sendMessage()">SEND</button>
 </div>
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
@@ -402,6 +411,14 @@ m.innerHTML = bubbleHTML;
 
 m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
   avatar.onclick = () => openProfile(data);
+});
+
+// Close profile modal when clicking outside the card
+const profileModal = document.getElementById("profileModal");
+profileModal.addEventListener("click", (e) => {
+  if (e.target === profileModal) {
+    profileModal.classList.remove("active");
+  }
 });
 
 if(side==="user"||isOwner){
@@ -521,36 +538,89 @@ setTimeout(()=>{ document.body.style.animation=""; },300);
 }
 }
 
-/* MUSIC PLAYER - SONG LIST */
-const coverUpload=document.getElementById("coverUpload");
-const albumCover=document.getElementById("albumCover");
-const songUpload=document.getElementById("songUpload");
-const songListDiv=document.getElementById("songList");
+/* ===== MUSIC PLAYER ===== */
 
-let songs=[],currentIndex=0,loop=false;
-const audioElem=new Audio();
-const playBtn=document.getElementById("playBtn");
-const nextBtn=document.getElementById("nextBtn");
-const prevBtn=document.getElementById("prevBtn");
-const loopBtn=document.getElementById("loopBtn");
+const audio = document.getElementById("audioPlayer");
+const songUpload = document.getElementById("songUpload");
+const songList = document.getElementById("songList");
+const coverUpload = document.getElementById("coverUpload");
+const albumCover = document.getElementById("albumCover");
 
-coverUpload.onchange=e=>{ const r=new FileReader(); r.onload=ev=>albumCover.src=ev.target.result; r.readAsDataURL(e.target.files[0]); };
-songUpload.onchange=e=>{
-for(const f of e.target.files){
-const url=URL.createObjectURL(f);
-songs.push({name:f.name,url});
-const div=document.createElement("div");
-div.className="song";
-div.textContent=f.name;
-div.onclick=()=>{ audioElem.src=url; audioElem.play(); playBtn.textContent="⏸"; };
-songListDiv.appendChild(div);
-}
+let songs = [];
+
+coverUpload.onchange = e => {
+const r = new FileReader();
+r.onload = ev => albumCover.src = ev.target.result;
+r.readAsDataURL(e.target.files[0]);
 };
 
-playBtn.onclick=()=>{ if(audioElem.paused){ audioElem.play(); playBtn.textContent="⏸"; }else{ audioElem.pause(); playBtn.textContent="▶️"; } };
-nextBtn.onclick=()=>{ if(songs.length===0) return; currentIndex=(currentIndex+1)%songs.length; audioElem.src=songs[currentIndex].url; audioElem.play(); };
-prevBtn.onclick=()=>{ if(songs.length===0) return; currentIndex=(currentIndex-1+songs.length)%songs.length; audioElem.src=songs[currentIndex].url; audioElem.play(); };
-loopBtn.onclick=()=>{ loop=!loop; loopBtn.style.background=loop?"#2563eb":"#1e3a8a"; };
+songUpload.onchange = e => {
+for (const file of e.target.files) {
+songs.push({ name: file.name, url: URL.createObjectURL(file) });
+}
+renderSongs();
+};
+
+function renderSongs() {
+songList.innerHTML = "";
+songs.forEach((s, i) => {
+const div = document.createElement("div");
+div.className = "song";
+div.textContent = s.name;
+div.onclick = () => {
+audio.src = s.url;
+audio.play();
+};
+songList.appendChild(div);
+});
+}
+
+window.savePlaylist = () => {
+alert("Playlist saved locally (session only)");
+};
+
+
+
+/* CUSTOM TAB BUTTONS */
+
+document.getElementById("setUsernameBtn").onclick = () => {
+  const val = document.getElementById("usernameInput").value.trim();
+  if (!val) return;
+  username = val;
+  localStorage.setItem("username", val);
+  alert("Username updated.");
+};
+
+document.getElementById("setDisplayNameBtn").onclick = () => {
+  const val = document.getElementById("displayNameInput").value.trim();
+  localStorage.setItem("displayName", val);
+  alert("Display name updated.");
+};
+
+document.getElementById("setPronounsBtn").onclick = () => {
+  const val = document.getElementById("pronounsInput").value.trim();
+  localStorage.setItem("pronouns", val);
+  alert("Pronouns updated.");
+};
+
+document.getElementById("setBioBtn").onclick = () => {
+  const val = document.getElementById("bioInput").value.trim();
+  localStorage.setItem("bio", val);
+  alert("Bio updated.");
+};
+
+document.getElementById("setPfpBtn").onclick = () => {
+  const file = document.getElementById("pfpUpload").files[0];
+  if (!file) return alert("Select an image first.");
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    userPFP = e.target.result;
+    localStorage.setItem("pfp", userPFP);
+    alert("Profile picture updated.");
+  };
+  reader.readAsDataURL(file);
+};
 
 function openProfile(data){
   if(!data) return;
@@ -561,14 +631,124 @@ function openProfile(data){
   document.getElementById("profilePronouns").textContent = data.pronouns || "";
   document.getElementById("profileBio").textContent = data.bio || "No bio set.";
 
+  const musicSection = document.getElementById("profileMusic");
+
+  const storedSong = localStorage.getItem("currentSong");
+
+  if (storedSong) {
+    const song = JSON.parse(storedSong);
+
+    musicSection.innerHTML = `
+      <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+        ${song.cover ? `<img src="${song.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
+        <div>
+          <div style="font-size:12px;">🎵 ${song.title}</div>
+          <div style="font-size:10px; opacity:0.6;">${song.artist}</div>
+        </div>
+      </div>
+    `;
+  } else {
+    musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
+  }
+
   document.getElementById("profileModal").classList.add("active");
 }
 
-document.getElementById("profileModal").addEventListener("click", e=>{
-  if(e.target.id === "profileModal"){
-    e.currentTarget.classList.remove("active");
-  }
-});
+/* ===== SPOTIFY CONNECTION ===== */
+const connectSpotifyBtn = document.getElementById("connectSpotifyBtn");
+const spotifyStatus = document.getElementById("spotifyStatus");
+const spotifyNowPlaying = document.getElementById("spotifyNowPlaying");
+
+const clientId = "4b25324c074241078829b7f44c202673";
+const redirectUri = window.location.origin + "/"; // redirect back to same page
+const scopes = "user-read-currently-playing";
+
+let spotifyToken = null;
+
+connectSpotifyBtn.onclick = () => {
+    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+    
+    // Open a new window for Spotify login
+    const width = 500, height = 600;
+    const left = (screen.width / 2) - (width / 2);
+    const top = (screen.height / 2) - (height / 2);
+
+    const spotifyWindow = window.open(
+        authUrl,
+        "SpotifyLogin",
+        `width=${width},height=${height},top=${top},left=${left}`
+    );
+
+    // Poll to check when the window closes and get the token from localStorage
+    const tokenInterval = setInterval(() => {
+        if (spotifyWindow.closed) {
+            clearInterval(tokenInterval);
+            const storedToken = localStorage.getItem("spotifyAccessToken");
+            if (storedToken) {
+                spotifyToken = storedToken;
+                spotifyStatus.textContent = "✅ Connected!";
+                fetchNowPlaying();
+                setInterval(fetchNowPlaying, 5000);
+            }
+        }
+    }, 500);
+};
+
+// Parse token from URL hash
+if(window.location.hash){
+    const hash = window.location.hash.substring(1).split("&").reduce((acc, cur)=>{
+        const [key, val] = cur.split("=");
+        acc[key] = val;
+        return acc;
+    }, {});
+    if(hash.access_token){
+        spotifyToken = hash.access_token;
+        spotifyStatus.textContent = "✅ Connected!";
+        window.history.replaceState({}, document.title, "/"); // clean URL
+        fetchNowPlaying();
+        setInterval(fetchNowPlaying, 5000); // update every 5s
+    }
+}
+
+async function fetchNowPlaying(){
+    if(!spotifyToken) return;
+    try{
+        const res = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
+            headers: { Authorization: `Bearer ${spotifyToken}` }
+        });
+        if(res.status === 204 || res.status === 202){
+            spotifyNowPlaying.textContent = "Not playing anything.";
+            return;
+        }
+        const data = await res.json();
+        if(!data.item) return;
+
+        const songName = data.item.name;
+        const artist = data.item.artists.map(a=>a.name).join(", ");
+        const albumCover = data.item.album.images[0]?.url;
+
+        spotifyNowPlaying.innerHTML = `
+            <div style="display:flex; gap:8px; align-items:center;">
+                <img src="${albumCover}" style="width:40px; height:40px; border-radius:6px;">
+                <div>
+                    <div style="font-size:11px;">🎵 ${songName}</div>
+                    <div style="font-size:10px; opacity:0.7;">${artist}</div>
+                </div>
+            </div>
+        `;
+
+        localStorage.setItem("currentSong", JSON.stringify({
+            title: songName,
+            artist: artist,
+            cover: albumCover
+        }));
+
+    } catch(err){
+        console.error("Spotify fetch error:", err);
+        spotifyStatus.textContent = "⚠ Error fetching song.";
+    }
+}
+
 </script>
 <div id="profileModal" class="profile-modal">
   <div class="profile-card">
@@ -581,6 +761,10 @@ document.getElementById("profileModal").addEventListener("click", e=>{
       <div class="profile-section">
         <h4>ABOUT ME</h4>
         <p id="profileBio"></p>
+         </div>
+         <div class="profile-section">
+        <h4>listening to</h4>
+       <div id="profileMusic"></div>
       </div>
     </div>
   </div>
