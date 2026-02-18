@@ -705,14 +705,14 @@ function showStatusPopup(message, duration=1500) {
 async function getNowPlaying(username) {
     if(!username) return null;
 
-    const url = `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`;
+    const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`)}`;
 
     try {
         const res = await fetch(url);
-        if(!res.ok) return null;
+if(!res.ok) return null;
 
-        const data = await res.json();
-        if(data.error || !data.recenttracks?.track?.length) return null;
+const wrapped = await res.json();
+const data = JSON.parse(wrapped.contents);
 
         const track = data.recenttracks.track[0];
 
