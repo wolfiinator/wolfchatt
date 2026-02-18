@@ -672,7 +672,9 @@ function showStatusPopup(message, duration=1500) {
 
 // ===== LAST.FM RICH PRESENCE =====
 async function getNowPlaying(username) {
-    const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json&limit=1`;
+    const res = await fetch(
+  `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
+);
     try {
         const res = await fetch(url);
         if(!res.ok) return null;
@@ -716,9 +718,9 @@ document.getElementById("setLastFmBtn").onclick = async () => {
     showStatusPopup("Connecting...");
 
     try {
-        const res = await fetch(
-          `https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
-        );
+    const res = await fetch(
+      `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
+      );
 
         const data = await res.json();
 
