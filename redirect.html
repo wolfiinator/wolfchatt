@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+const hash = window.location.hash.substring(1).split("&").reduce((acc, cur)=>{
+const [key, val] = cur.split("=");
+acc[key] = val;
+return acc;
+}, {});
+if(hash.access_token){
+localStorage.setItem("spotifyAccessToken", hash.access_token);
+window.close();
+}
+</script>
+</body>
+</html>
