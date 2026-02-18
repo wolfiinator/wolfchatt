@@ -253,15 +253,17 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 <!-- MUSIC TAB -->
 <div class="tab-content active" id="music">
 
-<h3 style="margin-bottom:10px;">Spotify Rich Presence</h3>
+<h3 style="margin-bottom:10px;">Last.fm Rich Presence</h3>
 
-<button class="tab-btn" id="connectSpotifyBtn">CONNECT SPOTIFY</button>
+<label>Last.fm Username</label>
+<input id="lastFmUsername" placeholder="Enter Last.fm username">
+<button class="tab-btn" id="setLastFmBtn">CONNECT</button>
 
-<div id="spotifyStatus" style="margin-top:12px; font-size:11px; opacity:0.7;">
+<div id="lastFmStatus" style="margin-top:12px; font-size:11px; opacity:0.7;">
 Not connected.
 </div>
 
-<div id="spotifyNowPlaying" style="margin-top:12px;"></div>
+<div id="lastFmNowPlaying" style="margin-top:12px;"></div>
 
 </div>
 
@@ -653,93 +655,124 @@ function openProfile(data){
   document.getElementById("profileModal").classList.add("active");
 }
 
-/* ===== SPOTIFY CONNECTION ===== */
-const connectSpotifyBtn = document.getElementById("connectSpotifyBtn");
-const spotifyStatus = document.getElementById("spotifyStatus");
-const spotifyNowPlaying = document.getElementById("spotifyNowPlaying");
+/* ===== LAST.FM RICH PRESENCE ===== */
 
-const clientId = "4b25324c074241078829b7f44c202673";
-const redirectUri = window.location.href.split("#")[0]; // current page URL without hash
-const scopes = "user-read-currently-playing";
+const lastFmApiKey = "YOUR_LASTFM_API_KEY"; // <-- get a free API key from https://www.last.fm/api
+const lastFmStatus = document.getElementById("lastFmStatus");
+const lastFmNowPlaying = document.getElementById("lastFmNowPlaying");
+const profileMusic = document.getElementById("profileMusic");
 
-let spotifyToken = null;
+function showStatusPopup(message, duration=1500) {
+    let popup = document.createElement("div");
+    popup.style.position = "fixed";
+    popup.style.top = "20px";
+    popup.style.left = "20px";
+    popup.style.background = "#020617";
+    popup.style.border = "2px solid #1e3a8a";
+    popup.style.padding = "10px 14px";
+    popup.style.borderRadius = "6px";
+    popup.style.fontFamily = "'Minecraftia', monospace";
+    popup.style.color = "#c7d2fe";
+    popup.style.zIndex = 3000;
+    popup.style.opacity = 0;
+    popup.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+    popup.style.transform = "translateY(-20px)";
+    popup.textContent = message;
 
-connectSpotifyBtn.onclick = () => {
-    const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}`;
+    document.body.appendChild(popup);
 
-    // Redirect current page to Spotify login
-    window.location.href = authUrl;
-};
+    setTimeout(() => {
+        popup.style.opacity = 1;
+        popup.style.transform = "translateY(0)";
+    }, 50);
 
-    // Poll to check when the window closes and get the token from localStorage
-    const tokenInterval = setInterval(() => {
-        if (spotifyWindow.closed) {
-            clearInterval(tokenInterval);
-            const storedToken = localStorage.getItem("spotifyAccessToken");
-            if (storedToken) {
-                spotifyToken = storedToken;
-                spotifyStatus.textContent = "✅ Connected!";
-                fetchNowPlaying();
-                setInterval(fetchNowPlaying, 5000);
-            }
-        }
-    }, 500);
-};
-
-// Parse token from URL hash
-if(window.location.hash){
-    const hash = window.location.hash.substring(1).split("&").reduce((acc, cur)=>{
-        const [key, val] = cur.split("=");
-        acc[key] = val;
-        return acc;
-    }, {});
-    if(hash.access_token){
-        spotifyToken = hash.access_token;
-        spotifyStatus.textContent = "✅ Connected!";
-        window.history.replaceState({}, document.title, window.location.href.split("#")[0]);
-        fetchNowPlaying();
-        setInterval(fetchNowPlaying, 5000); // update every 5s
-    }
+    setTimeout(() => {
+        popup.style.opacity = 0;
+        popup.style.transform = "translateY(-20px)";
+        setTimeout(()=> popup.remove(), 300);
+    }, duration);
 }
 
-async function fetchNowPlaying(){
-    if(!spotifyToken) return;
-    try{
-        const res = await fetch("https://api.spotify.com/v1/me/player/currently-playing", {
-            headers: { Authorization: `Bearer ${spotifyToken}` }
-        });
-        if(res.status === 204 || res.status === 202){
-            spotifyNowPlaying.textContent = "Not playing anything.";
-            return;
-        }
-        const data = await res.json();
-        if(!data.item) return;
+document.getElementById("setLastFmBtn").onclick = async () => {
+  const username = document.getElementById("lastFmUsername").value.trim();
+  if(!username) return alert("Enter your Last.fm username.");
 
-        const songName = data.item.name;
-        const artist = data.item.artists.map(a=>a.name).join(", ");
-        const albumCover = data.item.album.images[0]?.url;
+  showStatusPopup("Connecting...");
 
-        spotifyNowPlaying.innerHTML = `
-            <div style="display:flex; gap:8px; align-items:center;">
-                <img src="${albumCover}" style="width:40px; height:40px; border-radius:6px;">
-                <div>
-                    <div style="font-size:11px;">🎵 ${songName}</div>
-                    <div style="font-size:10px; opacity:0.7;">${artist}</div>
-                </div>
-            </div>
-        `;
-
-        localStorage.setItem("currentSong", JSON.stringify({
-            title: songName,
-            artist: artist,
-            cover: albumCover
-        }));
-
-    } catch(err){
-        console.error("Spotify fetch error:", err);
-        spotifyStatus.textContent = "⚠ Error fetching song.";
+  try {
+    const track = await getNowPlaying(username);
+    if(track) {
+      localStorage.setItem("lastFmUser", username);
+      lastFmStatus.textContent = `Connected as ${username}`;
+      showStatusPopup("Connected!");
+      updateLastFmPresence();
+    } else {
+      showStatusPopup("Failed to fetch tracks...", 2000);
     }
+  } catch(e) {
+    showStatusPopup("Failed to connect...", 2000);
+    console.error(e);
+  }
+};
+
+// Fetch currently playing track
+async function getNowPlaying(username) {
+  const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json&limit=1`;
+  const res = await fetch(url);
+  const data = await res.json();
+
+  if(!data.recenttracks || !data.recenttracks.track || data.recenttracks.track.length === 0) return null;
+
+  const track = data.recenttracks.track[0];
+  return {
+    title: track.name,
+    artist: track.artist["#text"],
+    album: track.album["#text"],
+    cover: track.image.length ? track.image[track.image.length-1]["#text"] : "",
+    nowPlaying: track["@attr"] && track["@attr"].nowplaying === "true"
+  };
 }
+
+// Update profile modal & MUSIC tab
+async function updateLastFmPresence() {
+  const username = localStorage.getItem("lastFmUser");
+  if(!username) return;
+
+  const track = await getNowPlaying(username);
+
+  if(track && track.nowPlaying) {
+    const html = `
+      <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+        ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
+        <div>
+          <div style="font-size:12px;">🎵 ${track.title}</div>
+          <div style="font-size:10px; opacity:0.6;">${track.artist}</div>
+        </div>
+      </div>
+    `;
+
+    lastFmNowPlaying.innerHTML = html;
+    profileMusic.innerHTML = html;
+    localStorage.setItem("currentSong", JSON.stringify(track));
+  } else {
+    const html = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
+    lastFmNowPlaying.innerHTML = html;
+    profileMusic.innerHTML = html;
+  }
+}
+
+// Refresh every 5 seconds
+setInterval(updateLastFmPresence, 5000);
+
+// On page load, restore if user had connected before
+window.addEventListener("DOMContentLoaded", () => {
+  const username = localStorage.getItem("lastFmUser");
+  if(username) {
+    document.getElementById("lastFmUsername").value = username;
+    lastFmStatus.textContent = `Connected as ${username}`;
+    updateLastFmPresence();
+  }
+});
 
 </script>
 <div id="profileModal" class="profile-modal">
@@ -763,5 +796,3 @@ async function fetchNowPlaying(){
 </div>
 </body>
 </html>
-
-
