@@ -703,38 +703,40 @@ function showStatusPopup(message, duration=1500) {
 
 // ===== LAST.FM RICH PRESENCE =====
 async function getNowPlaying(username) {
-    if(!username) return null;
+    if (!username) return null;
 
-    const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`)}`;
+    const url = `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`;
 
     try {
         const res = await fetch(url);
-if(!res.ok) return null;
+        if (!res.ok) throw new Error("Network response was not OK");
 
-const wrapped = await res.json();
-const data = JSON.parse(wrapped.contents);
+        const data = await res.json();
+        // corsproxy.io wraps the original body in `contents`
+        const wrapped = JSON.parse(data.contents);
 
-        const track = data.recenttracks.track[0];
+        const track = wrapped.recenttracks.track[0];
 
         return {
             title: track.name || "Unknown",
             artist: track.artist?.["#text"] || "Unknown",
             album: track.album?.["#text"] || "",
-            cover: track.image?.length ? track.image[track.image.length-1]["#text"] : "",
+            cover: track.image?.length ? track.image[track.image.length - 1]["#text"] : "",
             nowPlaying: track["@attr"]?.nowplaying === "true"
         };
-    } catch(e){
+    } catch (e) {
         console.error("getNowPlaying error:", e);
         return null;
     }
 }
 
 document.getElementById("setLastFmBtn").onclick = async () => {
-    const input = document.getElementById("lastFmUsername").value.trim();
-    if(!input) return alert("Enter your Last.fm username or profile link.");
+    let input = document.getElementById("lastFmUsername").value.trim();
+    if (!input) return alert("Enter your Last.fm username or profile link.");
 
     let extractedUsername = input;
 
+    // Extract username if input is a profile URL
     try {
         const url = new URL(input);
         if (url.hostname.includes("last.fm")) {
@@ -749,25 +751,20 @@ document.getElementById("setLastFmBtn").onclick = async () => {
     showStatusPopup("Connecting...");
 
     try {
-    const res = await fetch(
-      `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
-      );
-
+        const res = await fetch(`https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`);
         const data = await res.json();
 
-        if(data.error){
+        if (data.error) {
             showStatusPopup("Failed - account does not exist", 3000);
             return;
         }
 
-        // ✅ Account exists — save it
         localStorage.setItem("lastFmUser", extractedUsername);
         lastFmStatus.textContent = `Connected as ${extractedUsername}`;
         showStatusPopup("Connected!");
 
-        updateLastFmPresence();
-
-    } catch(e) {
+        await updateLastFmPresence();
+    } catch (e) {
         showStatusPopup("Network error - try again", 3000);
         console.error(e);
     }
