@@ -437,9 +437,12 @@ function addMessage(name, text, img, time, key, data){
   m.innerHTML = bubbleHTML;
 
   // Avatar click handler
-  m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
-    avatar.onclick = () => openProfile(data);
-  });
+ m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
+  avatar.onclick = () => {
+    if(data.name === username) return; // don't open profile for self
+    openProfile(data);
+  };
+});
 
   // Delete button for user/owner
   if(side === "user" || isOwner){
@@ -700,16 +703,16 @@ function showStatusPopup(message, duration=1500) {
 
 // ===== LAST.FM RICH PRESENCE =====
 async function getNowPlaying(username) {
-    const res = await fetch(
-  `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
-);
+    if(!username) return null;
+
+    const url = `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`;
+
     try {
         const res = await fetch(url);
         if(!res.ok) return null;
 
         const data = await res.json();
-        if(data.error) return null;
-        if(!data.recenttracks?.track?.length) return null;
+        if(data.error || !data.recenttracks?.track?.length) return null;
 
         const track = data.recenttracks.track[0];
 
@@ -909,4 +912,3 @@ document.getElementById("reconnectLastFmBtn").onclick = async () => {
 </div>
 </body>
 </html>
-
