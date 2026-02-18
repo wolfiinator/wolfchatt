@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -362,7 +362,7 @@ connectionIndicator.title="🔴 - terrible connection.";
 });
 }
 updateConnectionStatus();
-setInterval(updateConnectionStatus,5000);
+setInterval(updateConnectionStatus,20000);
 
 /* Chat */
 const chatBox=document.getElementById("chatBox");
@@ -372,6 +372,7 @@ let username=localStorage.getItem("username")||"PLAYER";
 let userPFP=localStorage.getItem("pfp")||"https://via.placeholder.com/36";
 let isOwner=false;
 let firstMessageLoaded=false;
+let lastNowPlaying = null; // tracks last track sent to chat
 
 // --- PAGE TITLE NOTIFICATIONS ---
 const originalTitle = document.title;
@@ -439,20 +440,22 @@ setTimeout(()=>{ chatLoading.style.display="none"; },500);
 }
 }
 
-window.sendMessage=()=>{
-if(!messageInput.value.trim()) return;
-push(messagesRootRef,{
-  name: username,
-  displayName: localStorage.getItem("displayName") || username,
-  pronouns: localStorage.getItem("pronouns") || "",
-  bio: localStorage.getItem("bio") || "",
-  text: messageInput.value,
-  img: userPFP,
-  time: timeNow(),
-  ts: Date.now()
-});
+window.sendMessage = () => {
+  if (!messageInput.value.trim()) return;
 
-messageInput.value="";
+  push(messagesRootRef, {
+    name: username,
+    displayName: localStorage.getItem("displayName") || username,
+    pronouns: localStorage.getItem("pronouns") || "",
+    bio: localStorage.getItem("bio") || "",
+    lastFmUser: localStorage.getItem("lastFmUser") || null, // 🔥 ADD THIS
+    text: messageInput.value,
+    img: userPFP,
+    time: timeNow(),
+    ts: Date.now()
+  });
+
+  messageInput.value = "";
 };
 
 onChildAdded(messagesQuery, snap => {
@@ -539,49 +542,6 @@ setTimeout(()=>{ document.body.style.animation=""; },300);
 }
 }
 
-/* ===== MUSIC PLAYER ===== */
-
-const audio = document.getElementById("audioPlayer");
-const songUpload = document.getElementById("songUpload");
-const songList = document.getElementById("songList");
-const coverUpload = document.getElementById("coverUpload");
-const albumCover = document.getElementById("albumCover");
-
-let songs = [];
-
-coverUpload.onchange = e => {
-const r = new FileReader();
-r.onload = ev => albumCover.src = ev.target.result;
-r.readAsDataURL(e.target.files[0]);
-};
-
-songUpload.onchange = e => {
-for (const file of e.target.files) {
-songs.push({ name: file.name, url: URL.createObjectURL(file) });
-}
-renderSongs();
-};
-
-function renderSongs() {
-songList.innerHTML = "";
-songs.forEach((s, i) => {
-const div = document.createElement("div");
-div.className = "song";
-div.textContent = s.name;
-div.onclick = () => {
-audio.src = s.url;
-audio.play();
-};
-songList.appendChild(div);
-});
-}
-
-window.savePlaylist = () => {
-alert("Playlist saved locally (session only)");
-};
-
-
-
 /* CUSTOM TAB BUTTONS */
 
 document.getElementById("setUsernameBtn").onclick = () => {
@@ -623,7 +583,7 @@ document.getElementById("setPfpBtn").onclick = () => {
   reader.readAsDataURL(file);
 };
 
-function openProfile(data){
+async function openProfile(data){
   if(!data) return;
 
   document.getElementById("profileAvatar").src = data.img;
@@ -634,22 +594,26 @@ function openProfile(data){
 
   const musicSection = document.getElementById("profileMusic");
 
-  const storedSong = localStorage.getItem("currentSong");
-
-  if (storedSong) {
-    const song = JSON.parse(storedSong);
-
-    musicSection.innerHTML = `
-      <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-        ${song.cover ? `<img src="${song.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
-        <div>
-          <div style="font-size:12px;">🎵 ${song.title}</div>
-          <div style="font-size:10px; opacity:0.6;">${song.artist}</div>
-        </div>
-      </div>
-    `;
+  if(!data.lastFmUser){
+    musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not connected to Last.fm</div>`;
   } else {
-    musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
+    musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">loading...</div>`;
+
+    const track = await getNowPlaying(data.lastFmUser);
+
+    if(track && track.nowPlaying){
+      musicSection.innerHTML = `
+        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+          ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
+          <div>
+            <div style="font-size:12px;">🎵 ${track.title}</div>
+            <div style="font-size:10px; opacity:0.6;">${track.artist}</div>
+          </div>
+        </div>
+      `;
+    } else {
+      musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening right now</div>`;
+    }
   }
 
   document.getElementById("profileModal").classList.add("active");
@@ -657,13 +621,23 @@ function openProfile(data){
 
 /* ===== LAST.FM RICH PRESENCE ===== */
 
-const lastFmApiKey = "YOUR_LASTFM_API_KEY"; // <-- get a free API key from https://www.last.fm/api
+const lastFmApiKey = "c08ea0f29eef2eec1c27b99a86afe75d";
 const lastFmStatus = document.getElementById("lastFmStatus");
 const lastFmNowPlaying = document.getElementById("lastFmNowPlaying");
 const profileMusic = document.getElementById("profileMusic");
 
+let activePopup = null;
+
 function showStatusPopup(message, duration=1500) {
+
+    if(activePopup) {
+        activePopup.remove();
+        activePopup = null;
+    }
+
     let popup = document.createElement("div");
+    activePopup = popup;
+
     popup.style.position = "fixed";
     popup.style.top = "20px";
     popup.style.left = "20px";
@@ -689,49 +663,82 @@ function showStatusPopup(message, duration=1500) {
     setTimeout(() => {
         popup.style.opacity = 0;
         popup.style.transform = "translateY(-20px)";
-        setTimeout(()=> popup.remove(), 300);
+        setTimeout(()=>{
+            popup.remove();
+            if(activePopup === popup) activePopup = null;
+        }, 300);
     }, duration);
 }
 
-document.getElementById("setLastFmBtn").onclick = async () => {
-  const username = document.getElementById("lastFmUsername").value.trim();
-  if(!username) return alert("Enter your Last.fm username.");
-
-  showStatusPopup("Connecting...");
-
-  try {
-    const track = await getNowPlaying(username);
-    if(track) {
-      localStorage.setItem("lastFmUser", username);
-      lastFmStatus.textContent = `Connected as ${username}`;
-      showStatusPopup("Connected!");
-      updateLastFmPresence();
-    } else {
-      showStatusPopup("Failed to fetch tracks...", 2000);
-    }
-  } catch(e) {
-    showStatusPopup("Failed to connect...", 2000);
-    console.error(e);
-  }
-};
-
-// Fetch currently playing track
+// ===== LAST.FM RICH PRESENCE =====
 async function getNowPlaying(username) {
-  const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json&limit=1`;
-  const res = await fetch(url);
-  const data = await res.json();
+    const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json&limit=1`;
+    try {
+        const res = await fetch(url);
+        if(!res.ok) return null;
 
-  if(!data.recenttracks || !data.recenttracks.track || data.recenttracks.track.length === 0) return null;
+        const data = await res.json();
+        if(data.error) return null;
+        if(!data.recenttracks?.track?.length) return null;
 
-  const track = data.recenttracks.track[0];
-  return {
-    title: track.name,
-    artist: track.artist["#text"],
-    album: track.album["#text"],
-    cover: track.image.length ? track.image[track.image.length-1]["#text"] : "",
-    nowPlaying: track["@attr"] && track["@attr"].nowplaying === "true"
-  };
+        const track = data.recenttracks.track[0];
+
+        return {
+            title: track.name || "Unknown",
+            artist: track.artist?.["#text"] || "Unknown",
+            album: track.album?.["#text"] || "",
+            cover: track.image?.length ? track.image[track.image.length-1]["#text"] : "",
+            nowPlaying: track["@attr"]?.nowplaying === "true"
+        };
+    } catch(e){
+        console.error("getNowPlaying error:", e);
+        return null;
+    }
 }
+
+document.getElementById("setLastFmBtn").onclick = async () => {
+    const input = document.getElementById("lastFmUsername").value.trim();
+    if(!input) return alert("Enter your Last.fm username or profile link.");
+
+    let extractedUsername = input;
+
+    try {
+        const url = new URL(input);
+        if (url.hostname.includes("last.fm")) {
+            const parts = url.pathname.split("/");
+            const userIndex = parts.indexOf("user");
+            if (userIndex !== -1 && parts[userIndex + 1]) {
+                extractedUsername = parts[userIndex + 1];
+            }
+        }
+    } catch {}
+
+    showStatusPopup("Connecting...");
+
+    try {
+        const res = await fetch(
+          `https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
+        );
+
+        const data = await res.json();
+
+        if(data.error){
+            showStatusPopup("Failed - account does not exist", 3000);
+            return;
+        }
+
+        // ✅ Account exists — save it
+        localStorage.setItem("lastFmUser", extractedUsername);
+        lastFmStatus.textContent = `Connected as ${extractedUsername}`;
+        showStatusPopup("Connected!");
+
+        updateLastFmPresence();
+
+    } catch(e) {
+        showStatusPopup("Network error - try again", 3000);
+        console.error(e);
+    }
+};
 
 // Update profile modal & MUSIC tab
 async function updateLastFmPresence() {
@@ -740,8 +747,8 @@ async function updateLastFmPresence() {
 
   const track = await getNowPlaying(username);
 
-  if(track && track.nowPlaying) {
-    const html = `
+  const html = track && track.nowPlaying
+    ? `
       <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
         ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
         <div>
@@ -749,20 +756,52 @@ async function updateLastFmPresence() {
           <div style="font-size:10px; opacity:0.6;">${track.artist}</div>
         </div>
       </div>
-    `;
+    `
+    : `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
 
-    lastFmNowPlaying.innerHTML = html;
-    profileMusic.innerHTML = html;
-    localStorage.setItem("currentSong", JSON.stringify(track));
-  } else {
-    const html = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
-    lastFmNowPlaying.innerHTML = html;
-    profileMusic.innerHTML = html;
-  }
+  lastFmNowPlaying.innerHTML = html;
+  profileMusic.innerHTML = html;
 }
 
 // Refresh every 5 seconds
 setInterval(updateLastFmPresence, 5000);
+
+// Show Last.fm track in chat as a "Now Playing" message (optional)
+function showNowPlayingInChat(track) {
+  if(!track || !track.nowPlaying) return;
+
+  const html = `
+    <div class="message other">
+      <img src="${userPFP}" style="width:36px; height:36px; border-radius:4px;">
+      <div class="bubble">
+        <div class="name">${username} 🎵</div>
+        ${track.cover ? `<img src="${track.cover}" style="width:36px; height:36px; border-radius:4px; margin:4px 0;">` : ""}
+        <div style="font-size:12px;">${track.title} — ${track.artist}</div>
+      </div>
+    </div>
+  `;
+  chatBox.insertAdjacentHTML("beforeend", html);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// Refresh in chat every 10 seconds
+setInterval(async () => {
+  const username = localStorage.getItem("lastFmUser");
+  if(!username) return;
+  
+  let track;
+  try {
+    track = await getNowPlaying(username);
+  } catch(e) { return; }
+
+  if(track?.nowPlaying){
+    const trackId = `${track.artist}-${track.title}`;
+    if(trackId !== lastNowPlaying){
+      lastNowPlaying = trackId;
+      showNowPlayingInChat(track);
+    }
+  }
+}, 10000);
 
 // On page load, restore if user had connected before
 window.addEventListener("DOMContentLoaded", () => {
