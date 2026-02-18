@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -241,28 +241,6 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 </head>
 <body>
 
-<!-- NOW PLAYING PANEL -->
-<div id="nowPlayingPanel" style="
-    position: fixed;
-    top: 12px;
-    left: 12px;
-    background: #020617;
-    border: 2px solid #1e3a8a;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-family: 'Minecraftia', monospace;
-    font-size: 12px;
-    color: #c7d2fe;
-    display: none;
-    z-index: 1500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-">
-    <img id="nowPlayingCover" src="" style="width:36px; height:36px; border-radius:4px; display:none;">
-    <span id="nowPlayingText"></span>
-</div>
-
 <button class="settings-btn" onclick="toggleSettings()">⚙</button>
 
 <div class="settings-panel" id="settingsPanel">
@@ -280,8 +258,6 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 <label>Last.fm Username</label>
 <input id="lastFmUsername" placeholder="Enter Last.fm username">
 <button class="tab-btn" id="setLastFmBtn">CONNECT</button>
-<button class="tab-btn" id="disconnectLastFmBtn">DISCONNECT</button>
-<button class="tab-btn" id="reconnectLastFmBtn">RECONNECT</button>
 
 <div id="lastFmStatus" style="margin-top:12px; font-size:11px; opacity:0.7;">
 Not connected.
@@ -417,58 +393,51 @@ messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ 
 
 function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
 
-function addMessage(name, text, img, time, key, data){
-  const m = document.createElement("div");
-  const side = name === username ? "user" : "other";
-  m.className = `message ${side}`;
-  let ownerStar = (name === "wolf") ? '<span class="owner-star">★</span>' : '';
+function addMessage(name,text,img,time,key,data){
+const m=document.createElement("div");
+const side=name===username?"user":"other";
+m.className=`message ${side}`;
+m.dataset.key=key;
+let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
+let bubbleHTML = `
+${side==="other"?`<img src="${img}" class="clickable-avatar">`:``}
+<div class="bubble">
+  <div class="name">${name}${ownerStar}</div>
+  ${text}
+  <div class="time">${time}</div>
+</div>
+${side==="user"?`<img src="${img}" class="clickable-avatar">`:``}
+`;
 
-  // Bubble and avatar
-  let bubbleHTML = `
-    ${side === "other" ? `<img src="${img}" class="clickable-avatar">` : ``}
-    <div class="bubble">
-      <div class="name">${name}${ownerStar}</div>
-      ${text}
-      <div class="time">${time}</div>
-    </div>
-    ${side === "user" ? `<img src="${img}" class="clickable-avatar">` : ``}
-  `;
+m.innerHTML = bubbleHTML;
 
-  m.innerHTML = bubbleHTML;
-
-  // Avatar click handler
- m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
-  avatar.onclick = () => {
-    if(data.name === username) return; // don't open profile for self
-    openProfile(data);
-  };
+m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
+  avatar.onclick = () => openProfile(data);
 });
 
-  // Delete button for user/owner
-  if(side === "user" || isOwner){
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "🗑";
-    delBtn.onclick = () => { remove(child(ref(db,"messages"), key)); m.remove(); };
-    m.querySelector(".bubble").appendChild(delBtn);
+// Close profile modal when clicking outside the card
+const profileModal = document.getElementById("profileModal");
+profileModal.addEventListener("click", (e) => {
+  if (e.target === profileModal) {
+    profileModal.classList.remove("active");
   }
+});
 
-  // Close profile modal when clicking outside the card
-  const profileModal = document.getElementById("profileModal");
-  profileModal.addEventListener("click", (e) => {
-    if (e.target === profileModal) {
-      profileModal.classList.remove("active");
-    }
-  });
+if(side==="user"||isOwner){
+const delBtn=document.createElement("button");
+delBtn.textContent="🗑";
+delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
+m.querySelector(".bubble").appendChild(delBtn);
+}
+chatBox.appendChild(m);
+chatBox.scrollTop=chatBox.scrollHeight;
 
-  chatBox.appendChild(m);
-  chatBox.scrollTop = chatBox.scrollHeight;
-
-  if(!firstMessageLoaded){
-    firstMessageLoaded = true;
-    chatLoading.style.opacity = 0;
-    chatBox.classList.add("loaded");
-    setTimeout(()=>{ chatLoading.style.display = "none"; }, 500);
-  }
+if(!firstMessageLoaded){
+firstMessageLoaded=true;
+chatLoading.style.opacity=0;
+chatBox.classList.add("loaded");
+setTimeout(()=>{ chatLoading.style.display="none"; },500);
+}
 }
 
 window.sendMessage = () => {
@@ -703,26 +672,27 @@ function showStatusPopup(message, duration=1500) {
 
 // ===== LAST.FM RICH PRESENCE =====
 async function getNowPlaying(username) {
-    if (!username) return null;
-
-    const url = `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json`;
-
+    const res = await fetch(
+  `https://corsproxy.io/?https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
+);
     try {
         const res = await fetch(url);
-        if (!res.ok) return null;
+        if(!res.ok) return null;
 
         const data = await res.json();
+        if(data.error) return null;
+        if(!data.recenttracks?.track?.length) return null;
+
         const track = data.recenttracks.track[0];
 
         return {
             title: track.name || "Unknown",
             artist: track.artist?.["#text"] || "Unknown",
             album: track.album?.["#text"] || "",
-            cover: track.image?.length ? track.image[track.image.length - 1]["#text"] : "",
+            cover: track.image?.length ? track.image[track.image.length-1]["#text"] : "",
             nowPlaying: track["@attr"]?.nowplaying === "true"
         };
-
-    } catch (e) {
+    } catch(e){
         console.error("getNowPlaying error:", e);
         return null;
     }
@@ -778,21 +748,9 @@ async function updateLastFmPresence() {
   if(!username) return;
 
   const track = await getNowPlaying(username);
-  const nowPanel = document.getElementById("nowPlayingPanel");
-  const nowText = document.getElementById("nowPlayingText");
-  const nowCover = document.getElementById("nowPlayingCover");
 
-  if(track && track.nowPlaying){
-    nowPanel.style.display = "flex";
-    nowText.textContent = `${track.title} — ${track.artist}`; // Song — Artist
-    if(track.cover){
-      nowCover.src = track.cover;
-      nowCover.style.display = "block";
-    } else {
-      nowCover.style.display = "none";
-    }
-
-    const html = `
+  const html = track && track.nowPlaying
+    ? `
       <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
         ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
         <div>
@@ -800,15 +758,11 @@ async function updateLastFmPresence() {
           <div style="font-size:10px; opacity:0.6;">${track.artist}</div>
         </div>
       </div>
-    `;
-    lastFmNowPlaying.innerHTML = html;
-    profileMusic.innerHTML = html;
+    `
+    : `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
 
-  } else {
-    nowPanel.style.display = "none";
-    lastFmNowPlaying.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
-    profileMusic.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
-  }
+  lastFmNowPlaying.innerHTML = html;
+  profileMusic.innerHTML = html;
 }
 
 // Refresh every 5 seconds
@@ -860,34 +814,6 @@ window.addEventListener("DOMContentLoaded", () => {
     updateLastFmPresence();
   }
 });
-
-// --- Disconnect Last.fm ---
-document.getElementById("disconnectLastFmBtn").onclick = () => {
-  localStorage.removeItem("lastFmUser");
-  document.getElementById("lastFmUsername").value = "";
-  lastFmStatus.textContent = "Not connected.";
-  lastFmNowPlaying.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
-  document.getElementById("nowPlayingPanel").style.display = "none";
-  showStatusPopup("Disconnected from Last.fm");
-};
-
-// --- Reconnect Last.fm ---
-document.getElementById("reconnectLastFmBtn").onclick = async () => {
-  const username = localStorage.getItem("lastFmUser");
-  if(!username) return showStatusPopup("No Last.fm account to reconnect", 2000);
-
-  document.getElementById("lastFmUsername").value = username;
-  lastFmStatus.textContent = `Connected as ${username}`;
-  showStatusPopup("Reconnecting...");
-
-  try {
-    await updateLastFmPresence();
-    showStatusPopup("Reconnected to Last.fm!");
-  } catch(e){
-    showStatusPopup("Failed to reconnect", 2000);
-    console.error(e);
-  }
-};
 
 </script>
 <div id="profileModal" class="profile-modal">
