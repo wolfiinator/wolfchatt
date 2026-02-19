@@ -186,6 +186,11 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   border-radius: 8px;
   overflow: hidden;
   animation: profileIn 0.25s ease;
+  transition: box-shadow 0.3s ease;
+}
+
+.profile-card.listening {
+  box-shadow: 0 0 25px #3b82f6;
 }
 
 @keyframes profileIn {
@@ -289,6 +294,10 @@ Not connected.
 <label>BIO</label>
 <input id="bioInput" placeholder="Write something cool...">
 <button class="tab-btn" id="setBioBtn">SET BIO</button>
+
+<label>BANNER IMAGE</label>
+<input type="file" accept="image/*" id="bannerUpload">
+<button class="tab-btn" id="setBannerBtn">SET BANNER</button>
 
 </div>
 
@@ -444,16 +453,17 @@ window.sendMessage = () => {
   if (!messageInput.value.trim()) return;
 
   push(messagesRootRef, {
-    name: username,
-    displayName: localStorage.getItem("displayName") || username,
-    pronouns: localStorage.getItem("pronouns") || "",
-    bio: localStorage.getItem("bio") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || null, // 🔥 ADD THIS
-    text: messageInput.value,
-    img: userPFP,
-    time: timeNow(),
-    ts: Date.now()
-  });
+  name: username,
+  displayName: localStorage.getItem("displayName") || username,
+  pronouns: localStorage.getItem("pronouns") || "",
+  bio: localStorage.getItem("bio") || "",
+  lastFmUser: localStorage.getItem("lastFmUser") || null,
+  banner: localStorage.getItem("banner") || null,
+  text: messageInput.value,
+  img: userPFP,
+  time: timeNow(),
+  ts: Date.now()
+});
 
   messageInput.value = "";
 };
@@ -583,17 +593,38 @@ document.getElementById("setPfpBtn").onclick = () => {
   reader.readAsDataURL(file);
 };
 
+document.getElementById("setBannerBtn").onclick = () => {
+  const file = document.getElementById("bannerUpload").files[0];
+  if (!file) return alert("Select a banner first.");
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    localStorage.setItem("banner", e.target.result);
+    alert("Banner updated.");
+  };
+  reader.readAsDataURL(file);
+};
+
 async function openProfile(data){
   if(!data) return;
 
   document.getElementById("profileAvatar").src = data.img;
+  const bannerDiv = document.querySelector(".profile-banner");
+
+if (data.banner) {
+  bannerDiv.style.background = `url(${data.banner}) center/cover`;
+} else {
+  bannerDiv.style.background = "linear-gradient(135deg,#1e3a8a,#2563eb)";
+}
   document.getElementById("profileDisplayName").textContent = data.displayName || data.name;
   document.getElementById("profileUsername").textContent = "@" + data.name;
   document.getElementById("profilePronouns").textContent = data.pronouns || "";
   document.getElementById("profileBio").textContent = data.bio || "No bio set.";
 
-  const musicSection = document.getElementById("profileMusic");
 
+  const musicSection = document.getElementById("profileMusic");
+  const profileCard = document.querySelector(".profile-card");
+profileCard.classList.remove("listening");
   if(!data.lastFmUser){
     musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not connected to Last.fm</div>`;
   } else {
@@ -602,6 +633,7 @@ async function openProfile(data){
     const track = await getNowPlaying(data.lastFmUser);
 
     if(track && track.nowPlaying){
+      profileCard.classList.add("listening");
       musicSection.innerHTML = `
         <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
           ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
@@ -797,5 +829,3 @@ window.addEventListener("DOMContentLoaded", () => {
 </div>
 </body>
 </html>
-
-
