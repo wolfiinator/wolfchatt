@@ -313,11 +313,23 @@ Not connected.
 <div class="tab-content" id="updates">
   <h3 style="margin-bottom:10px;">UPDATES</h3>
   <div class="song">
-    updates coming soon:
+    updates (u) // things i wanna add (a)
     <br><br>
-    typing animations,<br>
-    more profile configs,<br>
-    and more when i think of them.
+    working delete button (u)<br>
+    <br><br>
+    typing animations (a)<br>
+    more profile configs (a)<br>
+    mentions (a)<br>
+    edit messages a)<br>
+    pin messages (probably locally since no dms yet - a)<br>
+    chat themes (a)<br>
+    message reactions (a)<br>
+    reply system (a)<br>
+    dms (a)<br>
+    other chat rooms (a)<br>
+    <br><br>
+    thats probably all that im gonna add for now, but ask if you want anything else.<br>
+    - wolf/owner.
     </div>
   </div>
 </div>
@@ -495,6 +507,16 @@ onChildAdded(messagesQuery, snap => {
   if (!windowFocused && m.name !== username) {
     unreadCount++;
     document.title = `(${unreadCount}) ${originalTitle}`;
+  }
+});
+
+import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+onChildRemoved(messagesRootRef, snap => {
+  const key = snap.key;
+  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
+  if (msgElem) {
+    msgElem.remove(); // Remove it from the DOM on all clients
   }
 });
 
