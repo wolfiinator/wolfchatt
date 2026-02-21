@@ -279,9 +279,117 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   margin-bottom: 14px;
 }
 
+/* INTRO SCREEN */
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 9999;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+.intro-screen.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-title {
+  font-size: 18px;
+  margin-bottom: 30px;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: introFade 1.2s ease forwards;
+}
+
+.intro-button {
+  font-family: 'Minecraftia', monospace;
+  font-size: 12px;
+  padding: 10px 20px;
+  border: 2px solid #1e3a8a;
+  background: #020617;
+  color: #c7d2fe;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: introFade 1.2s ease forwards;
+  animation-delay: 0.6s;
+}
+
+.intro-button:hover {
+  background: #1e3a8a;
+}
+
+@keyframes introFade {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Subtitle */
+.intro-subtitle {
+  font-size: 10px;
+  color: #93c5fd;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: introFade 1.5s ease forwards;
+  animation-delay: 0.3s;
+  letter-spacing: 1px;
+}
+
+/* Glitch spark effect */
+.intro-glitch {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background: repeating-radial-gradient(circle, rgba(255,255,255,0.05), rgba(255,255,255,0.05) 1px, transparent 1px, transparent 3px);
+  animation: glitchAnim 0.6s infinite;
+  mix-blend-mode: overlay;
+}
+
+@keyframes glitchAnim {
+  0% { transform: translate(0,0); opacity:0.1; }
+  25% { transform: translate(2px,-1px); opacity:0.15; }
+  50% { transform: translate(-2px,1px); opacity:0.12; }
+  75% { transform: translate(1px,-2px); opacity:0.18; }
+  100% { transform: translate(0,0); opacity:0.1; }
+}
+
+/* Button pulse on hover */
+.intro-button:hover {
+  animation: buttonPulse 0.8s infinite alternate;
+}
+
+@keyframes buttonPulse {
+  from { transform: scale(1); background: #1e3a8a; }
+  to { transform: scale(1.05); background: #2563eb; }
+}
+
+/* Optional: subtle title shimmer */
+.intro-title {
+  position: relative;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
 </style>
 </head>
 <body>
+
+<!-- INTRO SCREEN -->
+<div id="introScreen" class="intro-screen">
+  <div class="intro-title">welcome to wolfchat.</div>
+  <button class="intro-button" id="enterBtn">enter</button>
+  <div class="intro-glitch"></div>
+</div>
 
 <button class="settings-btn" onclick="toggleSettings()">⚙</button>
 
@@ -1167,6 +1275,18 @@ document.getElementById("firstImportBtn").onclick = () => {
   };
 
   reader.readAsText(file);
+};
+
+/* INTRO SCREEN LOGIC */
+const introScreen = document.getElementById("introScreen");
+const enterBtn = document.getElementById("enterBtn");
+
+enterBtn.onclick = () => {
+  introScreen.classList.add("hidden");
+
+  setTimeout(() => {
+    introScreen.style.display = "none";
+  }, 800);
 };
 
 </script>
