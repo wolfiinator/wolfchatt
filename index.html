@@ -246,6 +246,39 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   filter: brightness(1.2);
 }
 
+/* FIRST LAUNCH OVERLAY */
+.first-launch {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.first-launch.active {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.first-launch-card {
+  width: 360px;
+  background: #020617;
+  border: 2px solid #1e3a8a;
+  padding: 20px;
+  border-radius: 8px;
+  animation: profileIn 0.25s ease;
+}
+
+.first-launch-card h2 {
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
 </style>
 </head>
 <body>
@@ -307,9 +340,13 @@ Not connected.
 <input type="file" accept="image/*" id="bannerUpload">
 <button class="tab-btn" id="setBannerBtn">SET BANNER</button>
 
-<label>PROFILE COLOR</label>
+<label>PROFILE BORDER COLOR</label>
 <input type="color" id="colorPicker" value="#1e3a8a">
 <button class="tab-btn" id="setColorBtn">SET COLOR</button>
+
+<label>PROFILE BACKGROUND COLOR</label>
+<input type="color" id="cardBgColorPicker">
+<button class="save-btn" id="setCardBgBtn">SET COLOR</button>
 
 <label>PROFILE LAYOUT BACKUP</label>
 <button class="tab-btn" id="exportLayoutBtn">EXPORT LAYOUT</button>
@@ -347,6 +384,9 @@ Not connected.
     updates (u) // things i wanna add (a)
     <br><br>
     working delete button (u)<br>
+    profile colors (u)<br>
+    new user screen (replaces player - u)<br>
+    fixed issue with last.fm connection erroring out randomly (u)<br>
     <br><br>
     typing animations (a)<br>
     more profile configs (a)<br>
@@ -358,11 +398,30 @@ Not connected.
     reply system (a)<br>
     dms (a)<br>
     other chat rooms (a)<br>
-    exporting and importing profiles (a)<br>
     <br><br>
     thats probably all that im gonna add for now, but ask if you want anything else.<br>
     - wolf/owner.
     </div>
+  </div>
+</div>
+
+<div id="firstLaunchOverlay" class="first-launch">
+  <div class="first-launch-card">
+    <h2>welcome to wolfchat.</h2>
+
+    <label>choose a username</label>
+    <input id="firstUsername" placeholder="enter username">
+
+    <label>choose a profile picture</label>
+    <input type="file" accept="image/*" id="firstPfp">
+
+    <button id="firstCreateBtn">create profile</button>
+
+    <hr style="margin:14px 0; border-color:#1e3a8a;">
+
+    <label>or load existing profile</label>
+    <input type="file" accept="application/json" id="firstImport">
+    <button id="firstImportBtn">load profile file</button>
   </div>
 </div>
 
@@ -425,8 +484,8 @@ setInterval(updateConnectionStatus,20000);
 const chatBox=document.getElementById("chatBox");
 const messageInput=document.getElementById("messageInput");
 const chatLoading = document.getElementById("chatLoading");
-let username=localStorage.getItem("username")||"PLAYER";
-let userPFP=localStorage.getItem("pfp")||"https://via.placeholder.com/36";
+let username = localStorage.getItem("username");
+let userPFP = localStorage.getItem("pfp");
 let isOwner=false;
 let firstMessageLoaded=false;
 const renderedMessages = new Set();
@@ -513,6 +572,7 @@ window.sendMessage = () => {
   lastFmUser: localStorage.getItem("lastFmUser") || null,
   banner: localStorage.getItem("banner") || null,
   profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+  profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
   
   badges: JSON.parse(localStorage.getItem("badges") || "[]"),
   joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
@@ -655,6 +715,32 @@ document.getElementById("setColorBtn").onclick = () => {
   alert("Profile color updated.");
 };
 
+document.getElementById("setCardBgBtn").onclick = () => {
+  const color = document.getElementById("cardBgColorPicker").value;
+
+  localStorage.setItem("profileCardBg", color);
+
+  const profileCard = document.querySelector(".profile-card");
+  if (profileCard) {
+    profileCard.style.background = color;
+  }
+
+  showStatusPopup("Profile background updated!");
+};
+
+document.getElementById("setColorBtn").onclick = () => {
+  const val = document.getElementById("colorPicker").value;
+  localStorage.setItem("profileColor", val);
+
+  // Update the profile card border if modal is open
+  const profileCard = document.querySelector(".profile-card");
+  if(profileCard){
+    profileCard.style.borderColor = val;
+  }
+
+  showStatusPopup("Profile color updated!");
+};
+
 function getProfileLayout() {
   return {
     username: localStorage.getItem("username") || "",
@@ -664,6 +750,7 @@ function getProfileLayout() {
     status: localStorage.getItem("status") || "",
     banner: localStorage.getItem("banner") || "",
     profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
     pfp: localStorage.getItem("pfp") || "",
     lastFmUser: localStorage.getItem("lastFmUser") || ""
   };
@@ -702,7 +789,18 @@ document.getElementById("importLayoutBtn").onclick = () => {
     try {
       const layout = JSON.parse(e.target.result);
 
-      const fields = ["username", "displayName", "pronouns", "bio", "status", "banner", "profileColor", "pfp", "lastFmUser"];
+      const fields = [
+        "username",
+       "displayName",
+       "pronouns",
+        "bio",
+       "status",
+        "banner",
+        "profileColor",
+        "profileCardBg",
+        "pfp",
+        "lastFmUser"
+      ];
       fields.forEach(field => {
         if (typeof layout[field] === "string") {
           localStorage.setItem(field, layout[field]);
@@ -816,6 +914,8 @@ document.getElementById("profileFavoriteSong").textContent =
   data.favoriteSong || "No favorite song set.";
   document.querySelector(".profile-card").style.borderColor =
   data.profileColor || "#1e3a8a";
+  document.querySelector(".profile-card").style.background =
+  data.profileCardBg || "#111111";
 
   const musicSection = document.getElementById("profileMusic");
   const profileCard = document.querySelector(".profile-card");
@@ -993,6 +1093,14 @@ async function updateLastFmPresence() {
 setInterval(updateLastFmPresence, 5000);
 
 // On page load, restore if user had connected before
+const overlay = document.getElementById("firstLaunchOverlay");
+
+if (!localStorage.getItem("username")) {
+  overlay.classList.add("active");
+} else {
+  username = localStorage.getItem("username");
+  userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/36";
+}
 window.addEventListener("DOMContentLoaded", () => {
   const username = localStorage.getItem("lastFmUser");
   if(username) {
@@ -1003,6 +1111,63 @@ window.addEventListener("DOMContentLoaded", () => {
 
   hydrateProfileFields(getProfileLayout());
 });
+
+document.getElementById("firstCreateBtn").onclick = () => {
+  const name = document.getElementById("firstUsername").value.trim();
+  const file = document.getElementById("firstPfp").files[0];
+
+  if (!name) {
+    alert("Enter a username.");
+    return;
+  }
+
+  localStorage.setItem("username", name);
+  username = name;
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      userPFP = e.target.result;
+      localStorage.setItem("pfp", userPFP);
+      finishFirstLaunch();
+    };
+    reader.readAsDataURL(file);
+  } else {
+    userPFP = "https://via.placeholder.com/36";
+    localStorage.setItem("pfp", userPFP);
+    finishFirstLaunch();
+  }
+};
+
+function finishFirstLaunch() {
+  document.getElementById("firstLaunchOverlay").classList.remove("active");
+  showStatusPopup("profile created!");
+}
+
+document.getElementById("firstImportBtn").onclick = () => {
+  const file = document.getElementById("firstImport").files[0];
+  if (!file) return alert("Select a profile file.");
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const layout = JSON.parse(e.target.result);
+
+      Object.keys(layout).forEach(key => {
+        localStorage.setItem(key, layout[key]);
+      });
+
+      username = localStorage.getItem("username");
+      userPFP = localStorage.getItem("pfp");
+
+      finishFirstLaunch();
+    } catch {
+      alert("Invalid profile file.");
+    }
+  };
+
+  reader.readAsText(file);
+};
 
 </script>
 
