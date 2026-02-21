@@ -316,6 +316,28 @@ Not connected.
 <input type="file" accept="application/json" id="importLayoutUpload">
 <button class="tab-btn" id="importLayoutBtn">IMPORT LAYOUT</button>
 
+<hr style="margin:12px 0; border-color:#1e3a8a;">
+
+<label>JOIN DATE</label>
+<input type="date" id="joinDateInput">
+<button class="tab-btn" id="setJoinDateBtn">SET JOIN DATE</button>
+
+<label>BADGES (comma separated)</label>
+<input id="badgesInput" placeholder="owner, beta, cool">
+<button class="tab-btn" id="setBadgesBtn">SET BADGES</button>
+
+<label>FAVORITE SONG</label>
+<input id="favoriteSongInput" placeholder="Song - Artist">
+<button class="tab-btn" id="setFavoriteSongBtn">SET FAVORITE SONG</button>
+
+<label>WEBSITE</label>
+<input id="websiteInput" placeholder="https://example.com">
+
+<label>GITHUB</label>
+<input id="githubInput" placeholder="https://github.com/username">
+
+<button class="tab-btn" id="setSocialsBtn">SAVE SOCIAL LINKS</button>
+
 </div>
 
 <!-- UPDATES TAB -->
@@ -478,17 +500,26 @@ setTimeout(()=>{ chatLoading.style.display="none"; },500);
 
 window.sendMessage = () => {
   if (!messageInput.value.trim()) return;
+    let msgCount = Number(localStorage.getItem("messageCount") || 0);
+    msgCount++;
+    localStorage.setItem("messageCount", msgCount);
 
   push(messagesRootRef, {
   name: username,
   displayName: localStorage.getItem("displayName") || username,
   pronouns: localStorage.getItem("pronouns") || "",
   bio: localStorage.getItem("bio") || "",
-  bio: localStorage.getItem("bio") || "",
   status: localStorage.getItem("status") || "",
   lastFmUser: localStorage.getItem("lastFmUser") || null,
   banner: localStorage.getItem("banner") || null,
   profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+  
+  badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+  joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
+  messageCount: Number(localStorage.getItem("messageCount") || 0),
+  socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+  favoriteSong: localStorage.getItem("favoriteSong") || "",
+  
   text: messageInput.value,
   img: userPFP,
   time: timeNow(),
@@ -499,9 +530,6 @@ window.sendMessage = () => {
 };
 
 onChildAdded(messagesQuery, snap => {
-  if (renderedMessages.has(snap.key)) return; // ignore duplicates
-
-  renderedMessages.add(snap.key);
 
   const m = snap.val();
 
@@ -707,6 +735,35 @@ document.getElementById("setStatusBtn").onclick = () => {
   alert("Status updated.");
 };
 
+document.getElementById("setJoinDateBtn").onclick = () => {
+  const val = document.getElementById("joinDateInput").value;
+  if (!val) return;
+  localStorage.setItem("joinDate", val);
+  alert("Join date updated.");
+};
+
+document.getElementById("setBadgesBtn").onclick = () => {
+  const val = document.getElementById("badgesInput").value;
+  const arr = val.split(",").map(b => b.trim()).filter(Boolean);
+  localStorage.setItem("badges", JSON.stringify(arr));
+  alert("Badges updated.");
+};
+
+document.getElementById("setFavoriteSongBtn").onclick = () => {
+  const val = document.getElementById("favoriteSongInput").value.trim();
+  localStorage.setItem("favoriteSong", val);
+  alert("Favorite song updated.");
+};
+
+document.getElementById("setSocialsBtn").onclick = () => {
+  const socials = {
+    website: document.getElementById("websiteInput").value.trim(),
+    github: document.getElementById("githubInput").value.trim()
+  };
+  localStorage.setItem("socials", JSON.stringify(socials));
+  alert("Social links saved.");
+};
+
 async function openProfile(data){
   if(!data) return;
 
@@ -723,6 +780,40 @@ if (data.banner) {
   document.getElementById("profilePronouns").textContent = data.pronouns || "";
   document.getElementById("profileStatus").textContent = data.status || "";
   document.getElementById("profileBio").textContent = data.bio || "No bio set.";
+  // ===== BADGES =====
+const badgeContainer = document.getElementById("profileBadges");
+badgeContainer.innerHTML = "";
+if (data.badges && data.badges.length) {
+  data.badges.forEach(b => {
+    const span = document.createElement("span");
+    span.textContent = "🏅 " + b;
+    span.style.fontSize = "10px";
+    span.style.marginRight = "6px";
+    badgeContainer.appendChild(span);
+  });
+}
+
+// ===== STATS =====
+document.getElementById("profileStats").innerHTML = `
+  <div>Joined: ${data.joinDate ? new Date(data.joinDate).toDateString() : "Unknown"}</div>
+  <div>Messages: ${data.messageCount || 0}</div>
+`;
+
+// ===== SOCIALS =====
+const socialDiv = document.getElementById("profileSocials");
+socialDiv.innerHTML = "";
+if (data.socials) {
+  if (data.socials.website) {
+    socialDiv.innerHTML += `<div><a href="${data.socials.website}" target="_blank">🌐 Website</a></div>`;
+  }
+  if (data.socials.github) {
+    socialDiv.innerHTML += `<div><a href="${data.socials.github}" target="_blank">💻 GitHub</a></div>`;
+  }
+}
+
+// ===== FAVORITE SONG =====
+document.getElementById("profileFavoriteSong").textContent =
+  data.favoriteSong || "No favorite song set.";
   document.querySelector(".profile-card").style.borderColor =
   data.profileColor || "#1e3a8a";
 
@@ -914,25 +1005,60 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 </script>
+
 <div id="profileModal" class="profile-modal">
   <div class="profile-card">
+    
     <div class="profile-banner"></div>
     <img id="profileAvatar" class="profile-avatar">
+
     <div class="profile-content">
+
+      <!-- Basic Info -->
       <div id="profileDisplayName" class="profile-display"></div>
       <div id="profileUsername" class="profile-username"></div>
       <div id="profilePronouns" class="profile-pronouns"></div>
       <div id="profileStatus" style="font-size:11px; margin-top:6px; color:#60a5fa;"></div>
+
+      <!-- About -->
       <div class="profile-section">
         <h4>ABOUT ME</h4>
         <p id="profileBio"></p>
-         </div>
-         <div class="profile-section">
-        <h4>listening to</h4>
-       <div id="profileMusic"></div>
       </div>
+
+      <!-- Badges -->
+      <div class="profile-section">
+        <h4>BADGES</h4>
+        <div id="profileBadges"></div>
+      </div>
+
+      <!-- Stats -->
+      <div class="profile-section">
+        <h4>STATS</h4>
+        <div id="profileStats"></div>
+      </div>
+
+      <!-- Social Links -->
+      <div class="profile-section">
+        <h4>SOCIALS</h4>
+        <div id="profileSocials"></div>
+      </div>
+
+      <!-- Favorite Song -->
+      <div class="profile-section">
+        <h4>FAVORITE SONG</h4>
+        <div id="profileFavoriteSong"></div>
+      </div>
+
+      <!-- Currently Listening -->
+      <div class="profile-section">
+        <h4>LISTENING TO</h4>
+        <div id="profileMusic"></div>
+      </div>
+
     </div>
   </div>
 </div>
+
 </body>
 </html>
