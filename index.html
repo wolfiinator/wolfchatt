@@ -321,7 +321,9 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 }
 
 .intro-button:hover {
-  background: #1e3a8a;
+  background: #2563eb;
+  transform: translateY(0) scale(1.05);
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 @keyframes introFade {
@@ -358,16 +360,6 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   50% { transform: translate(-2px,1px); opacity:0.12; }
   75% { transform: translate(1px,-2px); opacity:0.18; }
   100% { transform: translate(0,0); opacity:0.1; }
-}
-
-/* Button pulse on hover */
-.intro-button:hover {
-  animation: buttonPulse 0.8s infinite alternate;
-}
-
-@keyframes buttonPulse {
-  from { transform: scale(1); background: #1e3a8a; }
-  to { transform: scale(1.05); background: #2563eb; }
 }
 
 /* Optional: subtle title shimmer */
@@ -1347,3 +1339,4 @@ enterBtn.onclick = () => {
 
 </body>
 </html>
+
