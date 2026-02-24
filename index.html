@@ -180,20 +180,28 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 }
 
 .profile-card {
-  width: auto;                 /* allow it to grow (should fix ur profile lol)*/
-  min-width: 340px;            /* default size */
-  max-width: 90vw;             /* prevent from going off screen */
+  --profile-color: #1e3a8a; /* default fallback */
+
+  width: auto;
+  min-width: 340px;
+  max-width: 90vw;
+
   background: #111827;
-  border: 2px solid #1e3a8a;
+  border: 2px solid var(--profile-color);
   border-radius: 8px;
-  overflow-wrap: break-word;   /* wrap long words */
-  word-break: break-word;      /* force break if needed */
+
+  overflow-wrap: break-word;
+  word-break: break-word;
+
   animation: profileIn 0.25s ease;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .profile-card.listening {
-  box-shadow: 0 0 25px #3b82f6;
+  box-shadow:
+    0 0 12px var(--profile-color),
+    0 0 25px var(--profile-color),
+    0 0 40px var(--profile-color);
 }
 
 @keyframes profileIn {
@@ -1339,4 +1347,5 @@ enterBtn.onclick = () => {
 
 </body>
 </html>
+
 
