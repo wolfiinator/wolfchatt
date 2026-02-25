@@ -549,112 +549,57 @@ Not connected.
 <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import {
+getDatabase, ref, push, onChildAdded, remove, child, query, limitToLast, onValue
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-const SUPABASE_URL = 'https://bxhmysjeltoziismzosd.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_h02t67kjPI8-Jf6JUwsQzQ_2HNofd8x';
+/* Firebase setup */
+const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"w0lfchat.firebaseapp.com", databaseURL:"https://w0lfchat-default-rtdb.firebaseio.com/", projectId:"w0lfchat", storageBucket:"w0lfchat.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
+const app=initializeApp(firebaseConfig);
+const db=getDatabase(app);
+const messagesRootRef = ref(db, "messages");
+const messagesQuery = query(messagesRootRef, limitToLast(100));
 
-// Initialize Supabase client
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Reference to messages table
-const messagesTable = 'messages';
-
-// Connection Indicator (simple ping test)
+/* Connection Indicator */
 const connectionIndicator = document.getElementById("connectionIndicator");
-
-async function updateConnectionStatus() {
-  try {
-    const { data, error } = await supabase.rpc('ping'); // create a simple ping function in Supabase
-    if (error) throw error;
-
-    let color = 'blue', tooltip = '🔵 - connected';
-    if (navigator.connection && navigator.connection.effectiveType) {
-      switch (navigator.connection.effectiveType) {
-        case "4g": color = "blue"; tooltip = "🔵 - great connection."; break;
-        case "3g": color = "green"; tooltip = "🟢 - good connection."; break;
-        case "2g": color = "yellow"; tooltip = "🟡 - okay connection."; break;
-        case "slow-2g": color = "orange"; tooltip = "🟠 - bad connection."; break;
-        default: color = "red"; tooltip = "🔴 - terrible connection."; break;
-      }
-    }
-    connectionIndicator.style.background = color;
-    connectionIndicator.title = tooltip;
-  } catch {
-    connectionIndicator.style.background = "red";
-    connectionIndicator.title = "🔴 - not connected";
-  }
+function updateConnectionStatus() {
+const connectedRef = ref(db, ".info/connected");
+onValue(connectedRef, snap => {
+if(snap.val()===true){
+let color="blue", tooltip="🔵 - great connection.";
+if(navigator.connection && navigator.connection.effectiveType){
+switch(navigator.connection.effectiveType){
+case "4g": color="blue"; tooltip="🔵 - great connection."; break;
+case "3g": color="green"; tooltip="🟢 - good connection."; break;
+case "2g": color="yellow"; tooltip="🟡 - okay connection."; break;
+case "slow-2g": color="orange"; tooltip="🟠 - bad connection."; break;
+default: color="red"; tooltip="🔴 - terrible connection.";
 }
-
+}
+connectionIndicator.style.background=color;
+connectionIndicator.title=tooltip;
+}else{
+connectionIndicator.style.background="red";
+connectionIndicator.title="🔴 - terrible connection.";
+}
+});
+}
 updateConnectionStatus();
-setInterval(updateConnectionStatus, 20000);
+setInterval(updateConnectionStatus,20000);
 
-// Listen for new messages in real-time
-supabase
-  .channel('public:messages')
-  .on('postgres_changes', { event: '*', schema: 'public', table: messagesTable }, payload => {
-    console.log('New message:', payload.new);
-    addMessage(
-      payload.new.name,
-      payload.new.text,
-      payload.new.img,
-      payload.new.time,
-      payload.new.id,
-      payload.new
-    );
-  })
-  .subscribe();
-
-// Sending messages
-window.sendMessage = async () => {
-  if (!messageInput.value.trim()) return;
-
-  const { data, error } = await supabase.from(messagesTable).insert([{
-    name: username,
-    displayName: localStorage.getItem("displayName") || username,
-    pronouns: localStorage.getItem("pronouns") || "",
-    bio: localStorage.getItem("bio") || "",
-    status: localStorage.getItem("status") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || null,
-    banner: localStorage.getItem("banner") || null,
-    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
-    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-    joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
-    messageCount: Number(localStorage.getItem("messageCount") || 0),
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-    favoriteSong: localStorage.getItem("favoriteSong") || "",
-    text: messageInput.value,
-    img: userPFP,
-    time: timeNow(),
-    ts: Date.now()
-  }]);
-
-  if (error) console.error("Failed to send message:", error);
-
-  messageInput.value = "";
-};
-
-<script type="module">
-import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
-
-// --- SUPABASE INIT ---
-const SUPABASE_URL = 'https://bxhmysjeltoziismzosd.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_h02t67kjPI8-Jf6JUwsQzQ_2HNofd8x';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-// --- CHAT ELEMENTS ---
-const chatBox = document.getElementById("chatBox");
-const messageInput = document.getElementById("messageInput");
+/* Chat */
+const chatBox=document.getElementById("chatBox");
+const messageInput=document.getElementById("messageInput");
 const chatLoading = document.getElementById("chatLoading");
-
 let username = localStorage.getItem("username");
 let userPFP = localStorage.getItem("pfp");
-let isOwner = false;
-let firstMessageLoaded = false;
+let isOwner=false;
+let firstMessageLoaded=false;
 const renderedMessages = new Set();
-let lastNowPlaying = null;
+let lastNowPlaying = null; // tracks last track sent to chat
 
+// --- PAGE TITLE NOTIFICATIONS ---
 const originalTitle = document.title;
 let unreadCount = 0;
 let windowFocused = true;
@@ -665,152 +610,121 @@ window.addEventListener("focus", () => {
   document.title = originalTitle;
 });
 
-window.addEventListener("blur", () => windowFocused = false);
+window.addEventListener("blur", () => {
+  windowFocused = false;
+});
+  
+messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
 
-messageInput.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) { 
-    e.preventDefault(); 
-    sendMessage(); 
+function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+
+function addMessage(name,text,img,time,key,data){
+const m=document.createElement("div");
+const side=name===username?"user":"other";
+m.className=`message ${side}`;
+m.dataset.key=key;
+let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
+let bubbleHTML = `
+${side==="other"?`<img src="${img}" class="clickable-avatar">`:``}
+<div class="bubble">
+  <div class="name">${name}${ownerStar}</div>
+  ${text}
+  <div class="time">${time}</div>
+</div>
+${side==="user"?`<img src="${img}" class="clickable-avatar">`:``}
+`;
+
+m.innerHTML = bubbleHTML;
+
+m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
+  avatar.onclick = () => openProfile(data);
+});
+
+// Close profile modal when clicking outside the card
+const profileModal = document.getElementById("profileModal");
+profileModal.addEventListener("click", (e) => {
+  if (e.target === profileModal) {
+    profileModal.classList.remove("active");
   }
 });
 
-// --- HELPERS ---
-function timeNow() { 
-  return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }); 
+if(side==="user"||isOwner){
+const delBtn=document.createElement("button");
+delBtn.textContent="🗑";
+delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
+m.querySelector(".bubble").appendChild(delBtn);
+}
+chatBox.appendChild(m);
+chatBox.scrollTop=chatBox.scrollHeight;
+
+if(!firstMessageLoaded){
+firstMessageLoaded=true;
+chatLoading.style.opacity=0;
+chatBox.classList.add("loaded");
+setTimeout(()=>{ chatLoading.style.display="none"; },500);
+}
 }
 
-function addMessage(name, text, img, time, id, data) {
-  if (renderedMessages.has(id)) return;
-  renderedMessages.add(id);
-
-  const m = document.createElement("div");
-  const side = name === username ? "user" : "other";
-  m.className = `message ${side}`;
-  m.dataset.key = id;
-
-  let ownerStar = (name === "wolf") ? '<span class="owner-star">★</span>' : '';
-  let bubbleHTML = `
-    ${side === "other" ? `<img src="${img}" class="clickable-avatar">` : ``}
-    <div class="bubble">
-      <div class="name">${name}${ownerStar}</div>
-      ${text}
-      <div class="time">${time}</div>
-    </div>
-    ${side === "user" ? `<img src="${img}" class="clickable-avatar">` : ``}
-  `;
-
-  m.innerHTML = bubbleHTML;
-
-  m.querySelectorAll(".clickable-avatar").forEach(avatar => {
-    avatar.onclick = () => openProfile(data);
-  });
-
-  const profileModal = document.getElementById("profileModal");
-  profileModal.addEventListener("click", (e) => {
-    if (e.target === profileModal) profileModal.classList.remove("active");
-  });
-
-  if (side === "user" || isOwner) {
-    const delBtn = document.createElement("button");
-    delBtn.textContent = "🗑";
-    delBtn.onclick = async () => {
-      await supabase.from("messages").delete().eq("id", id);
-      m.remove();
-    };
-    m.querySelector(".bubble").appendChild(delBtn);
-  }
-
-  chatBox.appendChild(m);
-  chatBox.scrollTop = chatBox.scrollHeight;
-
-  if (!firstMessageLoaded) {
-    firstMessageLoaded = true;
-    chatLoading.style.opacity = 0;
-    chatBox.classList.add("loaded");
-    setTimeout(() => { chatLoading.style.display = "none"; }, 500);
-  }
-}
-
-// --- SEND MESSAGE ---
-async function sendMessage() {
+window.sendMessage = () => {
   if (!messageInput.value.trim()) return;
+    let msgCount = Number(localStorage.getItem("messageCount") || 0);
+    msgCount++;
+    localStorage.setItem("messageCount", msgCount);
 
-  let msgCount = Number(localStorage.getItem("messageCount") || 0);
-  msgCount++;
-  localStorage.setItem("messageCount", msgCount);
+  push(messagesRootRef, {
+  name: username,
+  displayName: localStorage.getItem("displayName") || username,
+  pronouns: localStorage.getItem("pronouns") || "",
+  bio: localStorage.getItem("bio") || "",
+  status: localStorage.getItem("status") || "",
+  lastFmUser: localStorage.getItem("lastFmUser") || null,
+  banner: localStorage.getItem("banner") || null,
+  profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+  profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
+  
+  badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+  joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
+  messageCount: Number(localStorage.getItem("messageCount") || 0),
+  socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+  favoriteSong: localStorage.getItem("favoriteSong") || "",
+  
+  text: messageInput.value,
+  img: userPFP,
+  time: timeNow(),
+  ts: Date.now()
+});
 
-  const { data, error } = await supabase.from("messages").insert([{
-    name: username,
-    displayName: localStorage.getItem("displayName") || username,
-    pronouns: localStorage.getItem("pronouns") || "",
-    bio: localStorage.getItem("bio") || "",
-    status: localStorage.getItem("status") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || null,
-    banner: localStorage.getItem("banner") || null,
-    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
-    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-    joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
-    messageCount: msgCount,
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-    favoriteSong: localStorage.getItem("favoriteSong") || "",
-    text: messageInput.value,
-    img: userPFP,
-    time: timeNow(),
-    ts: Date.now()
-  }]);
-
-  if (error) console.error(error);
   messageInput.value = "";
-}
+};
 
-// --- INITIAL LOAD ---
-async function loadMessages() {
-  const { data, error } = await supabase
-    .from("messages")
-    .select("*")
-    .order("ts", { ascending: true });
+onChildAdded(messagesQuery, snap => {
 
-  if (error) return console.error(error);
+  const m = snap.val();
 
-  data.forEach(m => addMessage(
+  addMessage(
     m.name || "PLAYER",
     m.text || "",
     m.img || "https://via.placeholder.com/36",
     m.time || timeNow(),
-    m.id,
+    snap.key,
     m
-  ));
-}
+  );
 
-// --- REAL-TIME SUBSCRIPTION ---
-supabase
-  .channel("public:messages")
-  .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, payload => {
-    const m = payload.new;
-    addMessage(
-      m.name || "PLAYER",
-      m.text || "",
-      m.img || "https://via.placeholder.com/36",
-      m.time || timeNow(),
-      m.id,
-      m
-    );
+  if (!windowFocused && m.name !== username) {
+    unreadCount++;
+    document.title = `(${unreadCount}) ${originalTitle}`;
+  }
+});
 
-    if (!windowFocused && m.name !== username) {
-      unreadCount++;
-      document.title = `(${unreadCount}) ${originalTitle}`;
-    }
-  })
-  .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, payload => {
-    const id = payload.old.id;
-    const msgElem = chatBox.querySelector(`.message[data-key="${id}"]`);
-    if (msgElem) msgElem.remove();
-  })
-  .subscribe();
+import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
-loadMessages();
-window.sendMessage = sendMessage;
+onChildRemoved(messagesRootRef, snap => {
+  const key = snap.key;
+  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
+  if (msgElem) {
+    msgElem.remove(); // Remove it from the DOM on all clients
+  }
+});
 
 /* SETTINGS */
 window.toggleSettings=()=>document.getElementById("settingsPanel").classList.toggle("open");
