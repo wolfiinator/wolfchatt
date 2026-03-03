@@ -494,7 +494,6 @@ Not connected.
     working delete button (u)<br>
     profile colors (u)<br>
     new user screen (replaces player - u)<br>
-    fixed crashing issue (u)<br>
     fixed issue with last.fm connection erroring out randomly (u)<br>
     <br><br>
     typing animations (a)<br>
@@ -507,7 +506,6 @@ Not connected.
     reply system (a)<br>
     dms (a)<br>
     other chat rooms (a)<br>
-    cap to messages to fix crashing issue (a)<br>
     <br><br>
     thats probably all that im gonna add for now, but ask if you want anything else.<br>
     - wolf/owner.
@@ -557,7 +555,7 @@ getDatabase, ref, push, onChildAdded, remove, child, query, limitToLast, onValue
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 /* Firebase setup */
-const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"w0lfchat.firebaseapp.com", databaseURL:"https://w0lfchat-default-rtdb.firebaseio.com/", projectId:"w0lfchat", storageBucket:"w0lfchat.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
+const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"wolfchatlol.firebaseapp.com", databaseURL:"https://wolfchatlol-default-rtdb.firebaseio.com/", projectId:"wolfchatlol", storageBucket:"wolfchatlol.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const messagesRootRef = ref(db, "messages");
@@ -642,14 +640,6 @@ m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
   avatar.onclick = () => openProfile(data);
 });
 
-// Close profile modal when clicking outside the card
-const profileModal = document.getElementById("profileModal");
-profileModal.addEventListener("click", (e) => {
-  if (e.target === profileModal) {
-    profileModal.classList.remove("active");
-  }
-});
-
 if(side==="user"||isOwner){
 const delBtn=document.createElement("button");
 delBtn.textContent="🗑";
@@ -717,6 +707,16 @@ onChildAdded(messagesQuery, snap => {
     document.title = `(${unreadCount}) ${originalTitle}`;
   }
 });
+
+let initialLoadTimeout = setTimeout(() => {
+  if (!firstMessageLoaded) {
+    chatLoading.style.opacity = 0;
+    chatBox.classList.add("loaded");
+    setTimeout(() => {
+      chatLoading.style.display = "none";
+    }, 500);
+  }
+}, 1500);
 
 import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
@@ -1222,6 +1222,17 @@ window.addEventListener("DOMContentLoaded", () => {
   hydrateProfileFields(getProfileLayout());
 });
 
+// Close profile modal when clicking outside
+const profileModal = document.getElementById("profileModal");
+
+if (profileModal) {
+  profileModal.addEventListener("click", (e) => {
+    if (e.target === profileModal) {
+      profileModal.classList.remove("active");
+    }
+  });
+}
+
 document.getElementById("firstCreateBtn").onclick = () => {
   const name = document.getElementById("firstUsername").value.trim();
   const file = document.getElementById("firstPfp").files[0];
@@ -1349,4 +1360,3 @@ enterBtn.onclick = () => {
 
 </body>
 </html>
-
