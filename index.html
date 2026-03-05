@@ -7,6 +7,7 @@
 
 <!-- Minecraftia font -->
 <link href="https://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -380,9 +381,68 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   100% { left: 100%; }
 }
 
+/* GOOGLE LOGIN OVERLAY */
+
+.google-login-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.96);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+}
+
+.google-login-card {
+  width: 360px;
+  background: #020617;
+  border: 2px solid #1e3a8a;
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.google-login-card h2 {
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.google-login-card p {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-bottom: 18px;
+}
+
 </style>
 </head>
 <body>
+
+<!-- GOOGLE LOGIN -->
+<div id="googleLoginOverlay" class="google-login-overlay">
+
+  <div class="google-login-card">
+    <h2>wolfchat google login</h2>
+
+    <p>
+    wolfchat profiles now save using google.<br>
+    this lets your profile load across devices.<br>
+    i don't have an o-auth yet, so this wont work.
+    </p>
+
+    <div id="g_id_onload"
+         data-client_id="YOUR_GOOGLE_CLIENT_ID"
+         data-callback="handleGoogleLogin">
+    </div>
+
+    <div class="g_id_signin"
+         data-type="standard"
+         data-theme="filled_black"
+         data-size="large">
+    </div>
+
+  </div>
+
+</div>
 
 <!-- INTRO SCREEN -->
 <div id="introScreen" class="intro-screen">
@@ -1300,6 +1360,32 @@ enterBtn.onclick = () => {
   setTimeout(() => {
     introScreen.style.display = "none";
   }, 800);
+};
+
+/* GOOGLE LOGIN */
+
+window.handleGoogleLogin = function(response){
+
+  const payload = JSON.parse(atob(response.credential.split(".")[1]));
+
+  const email = payload.email;
+  const name = payload.name;
+  const picture = payload.picture;
+
+  localStorage.setItem("googleUser", email);
+
+  if(!localStorage.getItem("username")){
+    username = name;
+    localStorage.setItem("username", name);
+  }
+
+  if(!localStorage.getItem("pfp")){
+    userPFP = picture;
+    localStorage.setItem("pfp", picture);
+  }
+
+  document.getElementById("googleLoginOverlay").style.display = "none";
+
 };
 
 </script>
