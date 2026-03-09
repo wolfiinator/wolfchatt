@@ -7,7 +7,6 @@
 
 <!-- Minecraftia font -->
 <link href="https://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -381,68 +380,9 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   100% { left: 100%; }
 }
 
-/* GOOGLE LOGIN OVERLAY */
-
-.google-login-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.96);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 10000;
-}
-
-.google-login-card {
-  width: 360px;
-  background: #020617;
-  border: 2px solid #1e3a8a;
-  padding: 20px;
-  border-radius: 8px;
-  text-align: center;
-}
-
-.google-login-card h2 {
-  font-size: 14px;
-  margin-bottom: 10px;
-}
-
-.google-login-card p {
-  font-size: 11px;
-  opacity: 0.8;
-  margin-bottom: 18px;
-}
-
 </style>
 </head>
 <body>
-
-<!-- GOOGLE LOGIN -->
-<div id="googleLoginOverlay" class="google-login-overlay">
-
-  <div class="google-login-card">
-    <h2>wolfchat google login</h2>
-
-    <p>
-    wolfchat profiles now save using google.<br>
-    this lets your profile load across devices.<br>
-    i don't have an o-auth yet, so this wont work.
-    </p>
-
-    <div id="g_id_onload"
-         data-client_id="YOUR_GOOGLE_CLIENT_ID"
-         data-callback="handleGoogleLogin">
-    </div>
-
-    <div class="g_id_signin"
-         data-type="standard"
-         data-theme="filled_black"
-         data-size="large">
-    </div>
-
-  </div>
-
-</div>
 
 <!-- INTRO SCREEN -->
 <div id="introScreen" class="intro-screen">
@@ -455,9 +395,32 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
 
 <div class="settings-panel" id="settingsPanel">
 <div class="settings-tabs">
-<button class="tab active" onclick="openTab('music')">MUSIC</button>
+<button class="tab active" onclick="openTab('account')">ACCOUNT</button>
+<button class="tab" onclick="openTab('music')">MUSIC</button>
 <button class="tab" onclick="openTab('custom')">CUSTOM</button>
 <button class="tab" onclick="openTab('updates')">UPDATES</button>
+</div>
+
+<!-- ACCOUNT TAB -->
+<div class="tab-content active" id="account">
+
+<h3 style="margin-bottom:10px;">Account</h3>
+
+<label>Email</label>
+<input id="authEmail" type="email" placeholder="email">
+
+<label>Password</label>
+<input id="authPassword" type="password" placeholder="password">
+
+<button class="tab-btn" id="loginAccountBtn">LOGIN</button>
+<button class="tab-btn" id="signupAccountBtn">SIGN UP</button>
+
+<button class="tab-btn" id="logoutAccountBtn">LOG OUT</button>
+
+<div id="authStatus" style="margin-top:10px;font-size:11px;opacity:0.7;">
+Not logged in
+</div>
+
 </div>
 
 <!-- MUSIC TAB -->
@@ -594,6 +557,38 @@ Not connected.
 </div>
 
 <div class="chat-container">
+<div id="loginScreen" style="
+position:fixed;
+inset:0;
+background:black;
+display:flex;
+justify-content:center;
+align-items:center;
+z-index:9999;
+">
+
+<div style="
+background:#020617;
+border:2px solid #1e3a8a;
+padding:20px;
+width:320px;
+">
+
+<h3 style="margin-bottom:10px;">login</h3>
+
+<label>Email</label>
+<input id="loginEmail" type="email">
+
+<label>Password</label>
+<input id="loginPassword" type="password">
+
+<button id="loginBtn" style="margin-top:10px;">login</button>
+<button id="signupBtn" style="margin-top:6px;">create account</button>
+
+<div id="loginFeedback"></div>
+
+</div>
+</div>
 <div class="chat-loading" id="chatLoading">
 <div class="loader"></div>
 <span>Loading messages...</span>
@@ -611,13 +606,21 @@ Not connected.
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
-getDatabase, ref, push, onChildAdded, remove, child, query, limitToLast, onValue
+getAuth,
+createUserWithEmailAndPassword,
+signInWithEmailAndPassword,
+onAuthStateChanged,
+signOut
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import {
+getDatabase, ref, push, set, onChildAdded, remove, child, query, limitToLast, onValue
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 /* Firebase setup */
 const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"wolfchatlol.firebaseapp.com", databaseURL:"https://wolfchatlol-default-rtdb.firebaseio.com/", projectId:"wolfchatlol", storageBucket:"wolfchatlol.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
+const auth = getAuth(app);
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(100));
 
@@ -724,7 +727,9 @@ window.sendMessage = () => {
     localStorage.setItem("messageCount", msgCount);
 
   push(messagesRootRef, {
+  uid: auth.currentUser?.uid || null,
   name: username,
+  displayName: localStorage.getItem("displayName") || username,
   displayName: localStorage.getItem("displayName") || username,
   pronouns: localStorage.getItem("pronouns") || "",
   bio: localStorage.getItem("bio") || "",
@@ -1387,6 +1392,158 @@ window.handleGoogleLogin = function(response){
   document.getElementById("googleLoginOverlay").style.display = "none";
 
 };
+
+const loginScreen = document.getElementById("loginScreen");
+const loginBtn = document.getElementById("loginBtn");
+const signupBtn = document.getElementById("signupBtn");
+const loginFeedback = document.getElementById("loginFeedback");
+
+loginBtn.onclick = async () => {
+
+const email = document.getElementById("loginEmail").value;
+const password = document.getElementById("loginPassword").value;
+
+try{
+await signInWithEmailAndPassword(auth,email,password);
+loginFeedback.textContent="logged in!";
+loginFeedback.style.color="lightgreen";
+}catch(err){
+loginFeedback.textContent=err.message;
+loginFeedback.style.color="red";
+}
+
+};
+
+signupBtn.onclick = async () => {
+
+const email = document.getElementById("loginEmail").value;
+const password = document.getElementById("loginPassword").value;
+
+try{
+await createUserWithEmailAndPassword(auth,email,password);
+loginFeedback.textContent="account created!";
+loginFeedback.style.color="lightgreen";
+}catch(err){
+loginFeedback.textContent=err.message;
+loginFeedback.style.color="red";
+}
+
+};
+
+onAuthStateChanged(auth,(user)=>{
+if(user){
+loginScreen.style.display="none";
+}else{
+loginScreen.style.display="flex";
+}
+});
+
+const authStatus=document.getElementById("authStatus");
+
+document.getElementById("loginAccountBtn").onclick=async()=>{
+
+const email=document.getElementById("authEmail").value;
+const pass=document.getElementById("authPassword").value;
+
+try{
+await signInWithEmailAndPassword(auth,email,pass);
+showStatusPopup("Logged in!");
+}catch(err){
+showStatusPopup(err.message,3000);
+}
+
+};
+
+document.getElementById("signupAccountBtn").onclick=async()=>{
+
+const email=document.getElementById("authEmail").value;
+const pass=document.getElementById("authPassword").value;
+
+try{
+await createUserWithEmailAndPassword(auth,email,pass);
+showStatusPopup("Account created!");
+
+migrateLocalProfile();
+
+}catch(err){
+showStatusPopup(err.message,3000);
+}
+
+};
+
+document.getElementById("logoutAccountBtn").onclick=()=>{
+signOut(auth);
+showStatusPopup("Logged out");
+};
+
+onAuthStateChanged(auth,(user)=>{
+
+if(user){
+authStatus.textContent="Logged in as "+user.email;
+}else{
+authStatus.textContent="Not logged in";
+}
+
+});
+
+function migrateLocalProfile(){
+
+if(!auth.currentUser) return;
+
+const profile={
+username:localStorage.getItem("username"),
+displayName:localStorage.getItem("displayName"),
+pronouns:localStorage.getItem("pronouns"),
+bio:localStorage.getItem("bio"),
+status:localStorage.getItem("status"),
+pfp:localStorage.getItem("pfp"),
+banner:localStorage.getItem("banner"),
+profileColor:localStorage.getItem("profileColor"),
+profileCardBg:localStorage.getItem("profileCardBg"),
+lastFmUser:localStorage.getItem("lastFmUser")
+};
+
+const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
+
+set(profileRef,profile);
+
+showStatusPopup("Profile saved to account!");
+}
+
+onAuthStateChanged(auth,(user)=>{
+
+if(!user) return;
+
+const profileRef=ref(db,"profiles/"+user.uid);
+
+onValue(profileRef,(snap)=>{
+
+if(!snap.exists()) return;
+
+const data=snap.val();
+
+Object.keys(data).forEach(k=>{
+if(data[k]) localStorage.setItem(k,data[k]);
+});
+
+username=data.username||username;
+userPFP=data.pfp||userPFP;
+
+});
+
+});
+
+window.addEventListener("load",()=>{
+
+if(localStorage.getItem("username") && !auth.currentUser){
+
+setTimeout(()=>{
+alert("Hey! wolfchat is adding accounts.\n\nPlease sign up with an email + password.\n\nYour profile will be saved to your account and synced across devices.");
+},2000);
+
+}
+
+});
 
 </script>
 
