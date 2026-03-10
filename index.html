@@ -617,7 +617,15 @@ getDatabase, ref, push, set, onChildAdded, remove, child, query, limitToLast, on
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 /* Firebase setup */
-const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"wolfchatlol.firebaseapp.com", databaseURL:"https://wolfchatlol-default-rtdb.firebaseio.com/", projectId:"wolfchatlol", storageBucket:"wolfchatlol.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
+const firebaseConfig = {
+  apiKey: "AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA",
+  authDomain: "wolfchatlol.firebaseapp.com",
+  databaseURL: "https://wolfchatlol-default-rtdb.firebaseio.com/",
+  projectId: "wolfchatlol",
+  storageBucket: "wolfchatlol.appspot.com",
+  messagingSenderId: "450627197800",
+  appId: "1:450627197800:web:facda7859980f4e570d4dd"
+};
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth = getAuth(app);
@@ -729,7 +737,6 @@ window.sendMessage = () => {
   push(messagesRootRef, {
   uid: auth.currentUser?.uid || null,
   name: username,
-  displayName: localStorage.getItem("displayName") || username,
   displayName: localStorage.getItem("displayName") || username,
   pronouns: localStorage.getItem("pronouns") || "",
   bio: localStorage.getItem("bio") || "",
