@@ -604,17 +604,29 @@ width:320px;
 <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
-getAuth,
-createUserWithEmailAndPassword,
-signInWithEmailAndPassword,
-onAuthStateChanged,
-signOut
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import {
-getDatabase, ref, push, set, onChildAdded, remove, child, query, limitToLast, onValue
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+  getDatabase,
+  ref,
+  push,
+  set,
+  onChildAdded,
+  remove,
+  child,
+  query,
+  limitToLast,
+  onValue,
+  onChildRemoved
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 /* Firebase setup */
 const firebaseConfig = {
@@ -789,8 +801,6 @@ let initialLoadTimeout = setTimeout(() => {
     }, 500);
   }
 }, 1500);
-
-import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 onChildRemoved(messagesRootRef, snap => {
   const key = snap.key;
