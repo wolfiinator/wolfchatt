@@ -783,13 +783,9 @@ window.sendMessage = () => {
 };
 
 onChildAdded(messagesQuery, snap => {
-
   const m = snap.val();
-
-  if(profileCache[m.uid]){
-
-    const p = profileCache[m.uid];
-
+  
+  const render = (p) => {
     addMessage(
       p.username || "PLAYER",
       m.text,
@@ -798,35 +794,23 @@ onChildAdded(messagesQuery, snap => {
       snap.key,
       p
     );
+    
+    if(!windowFocused){
+      unreadCount++;
+      document.title = `(${unreadCount}) ${originalTitle}`;
+    }
+  }
 
+  if(profileCache[m.uid]){
+    render(profileCache[m.uid]);
   } else {
-
     const profileRef = ref(db, "profiles/" + m.uid);
-
-    onValue(profileRef,(profileSnap)=>{
-
-      const p = profileSnap.val() || {};
-
+    onValue(profileRef, snapProfile => {
+      const p = snapProfile.val() || { username: "PLAYER", pfp: "https://via.placeholder.com/36" };
       profileCache[m.uid] = p;
-
-      addMessage(
-        p.username || "PLAYER",
-        m.text,
-        p.pfp || "https://via.placeholder.com/36",
-        new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
-        snap.key,
-        p
-      );
-
-    },{onlyOnce:true});
-
+      render(p);
+    }, { onlyOnce:true });
   }
-
-  if (!windowFocused) {
-    unreadCount++;
-    document.title = `(${unreadCount}) ${originalTitle}`;
-  }
-
 });
 
 let initialLoadTimeout = setTimeout(() => {
