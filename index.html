@@ -392,6 +392,51 @@ padding:6px;
 transform:scale(1.15);
 }
 
+.login-screen{
+position:fixed;
+inset:0;
+background:black;
+display:flex;
+justify-content:center;
+align-items:center;
+z-index:9999;
+}
+
+.login-card{
+width:340px;
+background:#020617;
+border:2px solid #1e3a8a;
+padding:22px;
+border-radius:10px;
+animation:scaleIn .35s ease;
+}
+
+.login-tabs{
+display:flex;
+gap:6px;
+margin-bottom:12px;
+}
+
+.login-tabs button{
+flex:1;
+padding:6px;
+}
+
+.login-tabs .active{
+background:#1e3a8a;
+}
+
+@keyframes scaleIn{
+from{
+transform:scale(.9);
+opacity:0;
+}
+to{
+transform:scale(1);
+opacity:1;
+}
+}
+
 </style>
 </head>
 <body>
@@ -569,33 +614,41 @@ Not connected.
 </div>
 
 <div class="chat-container">
-<div id="loginScreen" style="
-position:fixed;
-inset:0;
-background:black;
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:9999;
-">
+<div id="loginScreen" class="login-screen">
 
-<div style="
-background:#020617;
-border:2px solid #1e3a8a;
-padding:20px;
-width:320px;
-">
+<div class="login-card">
 
-<h3 style="margin-bottom:10px;">login</h3>
+<div class="login-tabs">
+<button id="tabLogin" class="active">login</button>
+<button id="tabCreate">create account</button>
+</div>
 
-<label>Email</label>
-<input id="loginEmail" type="email">
+<div id="loginTab">
 
-<label>Password</label>
+<label>username</label>
+<input id="loginUsername">
+
+<label>password</label>
 <input id="loginPassword" type="password">
 
-<button id="loginBtn" style="margin-top:10px;">login</button>
-<button id="signupBtn" style="margin-top:6px;">create account</button>
+<button id="loginBtn">login</button>
+
+</div>
+
+<div id="createTab" style="display:none">
+
+<label>username</label>
+<input id="createUsername">
+
+<label>email</label>
+<input id="createEmail">
+
+<label>password</label>
+<input id="createPassword" type="password">
+
+<button id="signupBtn">create account</button>
+
+</div>
 
 <div id="loginFeedback"></div>
 
@@ -637,6 +690,7 @@ import {
   ref,
   push,
   set,
+  get,
   onChildAdded,
   remove,
   child,
@@ -698,6 +752,8 @@ let username = localStorage.getItem("username");
 let userPFP = localStorage.getItem("pfp");
 let isOwner=false;
 let firstMessageLoaded=false;
+
+const profileCache = {};
 const renderedMessages = new Set();
 let lastNowPlaying = null; // tracks last track sent to chat
 
@@ -784,45 +840,47 @@ onChildAdded(messagesQuery, snap => {
 
   const m = snap.val();
 
-const profileRef = ref(db, "profiles/" + m.uid);
+  if(profileCache[m.uid]){
 
-onValue(profileRef, (profileSnap) => {
+    const p = profileCache[m.uid];
 
-  const p = profileSnap.val() || {};
+    addMessage(
+      p.username || "PLAYER",
+      m.text,
+      p.pfp || "https://via.placeholder.com/36",
+      new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+      snap.key,
+      p
+    );
 
-  addMessage(
-    p.username || "PLAYER",
-    m.text,
-    p.pfp || "https://via.placeholder.com/36",
-    new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
-    snap.key,
-    p
-  );
+  } else {
 
-}, { onlyOnce: true });
+    const profileRef = ref(db, "profiles/" + m.uid);
 
-  if (!windowFocused && m.name !== username) {
+    onValue(profileRef,(profileSnap)=>{
+
+      const p = profileSnap.val() || {};
+
+      profileCache[m.uid] = p;
+
+      addMessage(
+        p.username || "PLAYER",
+        m.text,
+        p.pfp || "https://via.placeholder.com/36",
+        new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+        snap.key,
+        p
+      );
+
+    },{onlyOnce:true});
+
+  }
+
+  if (!windowFocused) {
     unreadCount++;
     document.title = `(${unreadCount}) ${originalTitle}`;
   }
-});
 
-let initialLoadTimeout = setTimeout(() => {
-  if (!firstMessageLoaded) {
-    chatLoading.style.opacity = 0;
-    chatBox.classList.add("loaded");
-    setTimeout(() => {
-      chatLoading.style.display = "none";
-    }, 500);
-  }
-}, 1500);
-
-onChildRemoved(messagesRootRef, snap => {
-  const key = snap.key;
-  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
-  if (msgElem) {
-    msgElem.remove(); // Remove it from the DOM on all clients
-  }
 });
 
 /* SETTINGS */
@@ -1435,43 +1493,57 @@ const loginFeedback = document.getElementById("loginFeedback");
 
 loginBtn.onclick = async () => {
 
-const email = document.getElementById("loginEmail").value;
+const usernameInput = document.getElementById("loginUsername").value;
 const password = document.getElementById("loginPassword").value;
 
 try{
+
+const snap = await get(ref(db,"usernames/"+usernameInput));
+
+if(!snap.exists()) throw new Error("User not found");
+
+const email = snap.val().email;
+
 await signInWithEmailAndPassword(auth,email,password);
+
 loginFeedback.textContent="logged in!";
 loginFeedback.style.color="lightgreen";
+
 }catch(err){
+
 loginFeedback.textContent=err.message;
 loginFeedback.style.color="red";
+
 }
 
 };
 
 signupBtn.onclick = async () => {
 
-const email = document.getElementById("loginEmail").value;
-const password = document.getElementById("loginPassword").value;
+const usernameInput = document.getElementById("createUsername").value;
+const email = document.getElementById("createEmail").value;
+const password = document.getElementById("createPassword").value;
 
 try{
-await createUserWithEmailAndPassword(auth,email,password);
+
+const userCred = await createUserWithEmailAndPassword(auth,email,password);
+
+await set(ref(db,"usernames/"+usernameInput),{
+uid:userCred.user.uid,
+email:email
+});
+
 loginFeedback.textContent="account created!";
 loginFeedback.style.color="lightgreen";
+
 }catch(err){
+
 loginFeedback.textContent=err.message;
 loginFeedback.style.color="red";
+
 }
 
 };
-
-onAuthStateChanged(auth,(user)=>{
-if(user){
-loginScreen.style.display="none";
-}else{
-loginScreen.style.display="flex";
-}
-});
 
 const authStatus=document.getElementById("authStatus");
 
@@ -1531,8 +1603,8 @@ displayName:localStorage.getItem("displayName"),
 pronouns:localStorage.getItem("pronouns"),
 bio:localStorage.getItem("bio"),
 status:localStorage.getItem("status"),
-pfp:localStorage.getItem("pfp"),
-banner:localStorage.getItem("banner"),
+pfp:localStorage.getItem("pfpUrl"),
+banner:localStorage.getItem("bannerUrl"),
 profileColor:localStorage.getItem("profileColor"),
 profileCardBg:localStorage.getItem("profileCardBg"),
 lastFmUser:localStorage.getItem("lastFmUser")
