@@ -392,51 +392,6 @@ padding:6px;
 transform:scale(1.15);
 }
 
-.login-screen{
-position:fixed;
-inset:0;
-background:black;
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:9999;
-}
-
-.login-card{
-width:340px;
-background:#020617;
-border:2px solid #1e3a8a;
-padding:22px;
-border-radius:10px;
-animation:scaleIn .35s ease;
-}
-
-.login-tabs{
-display:flex;
-gap:6px;
-margin-bottom:12px;
-}
-
-.login-tabs button{
-flex:1;
-padding:6px;
-}
-
-.login-tabs .active{
-background:#1e3a8a;
-}
-
-@keyframes scaleIn{
-from{
-transform:scale(.9);
-opacity:0;
-}
-to{
-transform:scale(1);
-opacity:1;
-}
-}
-
 </style>
 </head>
 <body>
@@ -614,55 +569,14 @@ Not connected.
 </div>
 
 <div class="chat-container">
-<div id="loginScreen" class="login-screen">
-
-<div class="login-card">
-
-<div class="login-tabs">
-<button id="tabLogin" class="active">login</button>
-<button id="tabCreate">create account</button>
-</div>
-
-<div id="loginTab">
-
-<label>username</label>
-<input id="loginUsername">
-
-<label>password</label>
-<input id="loginPassword" type="password">
-
-<button id="loginBtn">login</button>
-
-</div>
-
-<div id="createTab" style="display:none">
-
-<label>username</label>
-<input id="createUsername">
-
-<label>email</label>
-<input id="createEmail">
-
-<label>password</label>
-<input id="createPassword" type="password">
-
-<button id="signupBtn">create account</button>
-
-</div>
-
-<div id="loginFeedback"></div>
-
-</div>
-</div>
-
-<div id="usernameSetup" style="
+<div id="loginScreen" style="
 position:fixed;
 inset:0;
 background:black;
-display:none;
+display:flex;
 justify-content:center;
 align-items:center;
-z-index:9998;
+z-index:9999;
 ">
 
 <div style="
@@ -672,17 +586,21 @@ padding:20px;
 width:320px;
 ">
 
-<h3>choose a username</h3>
+<h3 style="margin-bottom:10px;">login</h3>
 
-<input id="newUsername" placeholder="username">
+<label>Email</label>
+<input id="loginEmail" type="email">
 
-<button id="saveUsernameBtn">continue</button>
+<label>Password</label>
+<input id="loginPassword" type="password">
 
-<div id="usernameFeedback"></div>
+<button id="loginBtn" style="margin-top:10px;">login</button>
+<button id="signupBtn" style="margin-top:6px;">create account</button>
+
+<div id="loginFeedback"></div>
 
 </div>
 </div>
-
 <div class="chat-loading" id="chatLoading">
 <div class="loader"></div>
 <span>Loading messages...</span>
@@ -719,7 +637,6 @@ import {
   ref,
   push,
   set,
-  get,
   onChildAdded,
   remove,
   child,
@@ -742,65 +659,6 @@ const firebaseConfig = {
   };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
-// --- USERNAME SETUP FOR EXISTING ACCOUNTS ---
-const usernameSetup = document.getElementById("usernameSetup");
-const saveUsernameBtn = document.getElementById("saveUsernameBtn");
-const usernameFeedback = document.getElementById("usernameFeedback");
-
-// Auth state listener
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    const profileRef = ref(db, "profiles/" + user.uid);
-    const snap = await get(profileRef);
-
-    if (!snap.exists() || !snap.val().username) {
-      // No username yet → show setup screen
-      loginScreen.style.display = "none";
-      usernameSetup.style.display = "flex";
-    } else {
-      // Already has username
-      loginScreen.style.display = "none";
-      username = snap.val().username;
-      localStorage.setItem("username", username);
-    }
-  } else {
-    // Not logged in → show login screen
-    loginScreen.style.display = "flex";
-    usernameSetup.style.display = "none";
-  }
-});
-
-// Save new username
-saveUsernameBtn.onclick = async () => {
-  const newUsername = document.getElementById("newUsername").value.trim().toLowerCase();
-  if (newUsername.length < 3) {
-    usernameFeedback.textContent = "Username too short";
-    return;
-  }
-
-  try {
-    const usernameRef = ref(db, "usernames/" + newUsername);
-    const snap = await get(usernameRef);
-
-    if (snap.exists()) {
-      usernameFeedback.textContent = "Username already taken";
-      return;
-    }
-
-    // Save username
-    await set(usernameRef, { uid: auth.currentUser.uid });
-    await set(ref(db, "profiles/" + auth.currentUser.uid + "/username"), newUsername);
-
-    usernameSetup.style.display = "none";
-    username = newUsername;
-    localStorage.setItem("username", newUsername);
-
-    alert("Username set! You can now enter chat.");
-
-  } catch (err) {
-    usernameFeedback.textContent = err.message;
-  }
-};
 const auth = getAuth(app);
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
@@ -969,6 +827,24 @@ onChildAdded(messagesQuery, snap => {
     document.title = `(${unreadCount}) ${originalTitle}`;
   }
 
+});
+
+let initialLoadTimeout = setTimeout(() => {
+  if (!firstMessageLoaded) {
+    chatLoading.style.opacity = 0;
+    chatBox.classList.add("loaded");
+    setTimeout(() => {
+      chatLoading.style.display = "none";
+    }, 500);
+  }
+}, 1500);
+
+onChildRemoved(messagesRootRef, snap => {
+  const key = snap.key;
+  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
+  if (msgElem) {
+    msgElem.remove(); // Remove it from the DOM on all clients
+  }
 });
 
 /* SETTINGS */
@@ -1581,57 +1457,43 @@ const loginFeedback = document.getElementById("loginFeedback");
 
 loginBtn.onclick = async () => {
 
-const usernameInput = document.getElementById("loginUsername").value;
+const email = document.getElementById("loginEmail").value;
 const password = document.getElementById("loginPassword").value;
 
 try{
-
-const snap = await get(ref(db,"usernames/"+usernameInput));
-
-if(!snap.exists()) throw new Error("User not found");
-
-const email = snap.val().email;
-
 await signInWithEmailAndPassword(auth,email,password);
-
 loginFeedback.textContent="logged in!";
 loginFeedback.style.color="lightgreen";
-
 }catch(err){
-
 loginFeedback.textContent=err.message;
 loginFeedback.style.color="red";
-
 }
 
 };
 
 signupBtn.onclick = async () => {
 
-const usernameInput = document.getElementById("createUsername").value;
-const email = document.getElementById("createEmail").value;
-const password = document.getElementById("createPassword").value;
+const email = document.getElementById("loginEmail").value;
+const password = document.getElementById("loginPassword").value;
 
 try{
-
-const userCred = await createUserWithEmailAndPassword(auth,email,password);
-
-await set(ref(db,"usernames/"+usernameInput),{
-uid:userCred.user.uid,
-email:email
-});
-
+await createUserWithEmailAndPassword(auth,email,password);
 loginFeedback.textContent="account created!";
 loginFeedback.style.color="lightgreen";
-
 }catch(err){
-
 loginFeedback.textContent=err.message;
 loginFeedback.style.color="red";
-
 }
 
 };
+
+onAuthStateChanged(auth,(user)=>{
+if(user){
+loginScreen.style.display="none";
+}else{
+loginScreen.style.display="flex";
+}
+});
 
 const authStatus=document.getElementById("authStatus");
 
@@ -1674,24 +1536,9 @@ showStatusPopup("Logged out");
 onAuthStateChanged(auth,(user)=>{
 
 if(user){
-
-const profileRef = ref(db,"profiles/"+user.uid);
-
-get(profileRef).then((snap)=>{
-
-if(!snap.exists() || !snap.val().username){
-
-loginScreen.style.display="none";
-usernameSetup.style.display="flex";
-
+authStatus.textContent="Logged in as "+user.email;
 }else{
-
-loginScreen.style.display="none";
-
-}
-
-});
-
+authStatus.textContent="Not logged in";
 }
 
 });
