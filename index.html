@@ -654,6 +654,35 @@ Not connected.
 
 </div>
 </div>
+
+<div id="usernameSetup" style="
+position:fixed;
+inset:0;
+background:black;
+display:none;
+justify-content:center;
+align-items:center;
+z-index:9998;
+">
+
+<div style="
+background:#020617;
+border:2px solid #1e3a8a;
+padding:20px;
+width:320px;
+">
+
+<h3>choose a username</h3>
+
+<input id="newUsername" placeholder="username">
+
+<button id="saveUsernameBtn">continue</button>
+
+<div id="usernameFeedback"></div>
+
+</div>
+</div>
+
 <div class="chat-loading" id="chatLoading">
 <div class="loader"></div>
 <span>Loading messages...</span>
@@ -713,6 +742,65 @@ const firebaseConfig = {
   };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
+// --- USERNAME SETUP FOR EXISTING ACCOUNTS ---
+const usernameSetup = document.getElementById("usernameSetup");
+const saveUsernameBtn = document.getElementById("saveUsernameBtn");
+const usernameFeedback = document.getElementById("usernameFeedback");
+
+// Auth state listener
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    const profileRef = ref(db, "profiles/" + user.uid);
+    const snap = await get(profileRef);
+
+    if (!snap.exists() || !snap.val().username) {
+      // No username yet → show setup screen
+      loginScreen.style.display = "none";
+      usernameSetup.style.display = "flex";
+    } else {
+      // Already has username
+      loginScreen.style.display = "none";
+      username = snap.val().username;
+      localStorage.setItem("username", username);
+    }
+  } else {
+    // Not logged in → show login screen
+    loginScreen.style.display = "flex";
+    usernameSetup.style.display = "none";
+  }
+});
+
+// Save new username
+saveUsernameBtn.onclick = async () => {
+  const newUsername = document.getElementById("newUsername").value.trim().toLowerCase();
+  if (newUsername.length < 3) {
+    usernameFeedback.textContent = "Username too short";
+    return;
+  }
+
+  try {
+    const usernameRef = ref(db, "usernames/" + newUsername);
+    const snap = await get(usernameRef);
+
+    if (snap.exists()) {
+      usernameFeedback.textContent = "Username already taken";
+      return;
+    }
+
+    // Save username
+    await set(usernameRef, { uid: auth.currentUser.uid });
+    await set(ref(db, "profiles/" + auth.currentUser.uid + "/username"), newUsername);
+
+    usernameSetup.style.display = "none";
+    username = newUsername;
+    localStorage.setItem("username", newUsername);
+
+    alert("Username set! You can now enter chat.");
+
+  } catch (err) {
+    usernameFeedback.textContent = err.message;
+  }
+};
 const auth = getAuth(app);
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
@@ -1586,9 +1674,24 @@ showStatusPopup("Logged out");
 onAuthStateChanged(auth,(user)=>{
 
 if(user){
-authStatus.textContent="Logged in as "+user.email;
+
+const profileRef = ref(db,"profiles/"+user.uid);
+
+get(profileRef).then((snap)=>{
+
+if(!snap.exists() || !snap.val().username){
+
+loginScreen.style.display="none";
+usernameSetup.style.display="flex";
+
 }else{
-authStatus.textContent="Not logged in";
+
+loginScreen.style.display="none";
+
+}
+
+});
+
 }
 
 });
