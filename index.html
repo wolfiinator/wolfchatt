@@ -380,6 +380,18 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   100% { left: 100%; }
 }
 
+#emojiBtn{
+background:#020617;
+border:none;
+font-size:20px;
+cursor:pointer;
+padding:6px;
+}
+
+#emojiBtn:hover{
+transform:scale(1.15);
+}
+
 </style>
 </head>
 <body>
@@ -596,12 +608,18 @@ width:320px;
 <div class="chat-box" id="chatBox"></div>
 <div class="input-box">
 <div class="connection-indicator" id="connectionIndicator" title="Checking connection..."></div>
+<button id="emojiBtn">😀</button>
 <input id="messageInput" placeholder="TYPE MESSAGE...">
 <button onclick="sendMessage()">SEND</button>
+
 </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
+<script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
+
+
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -643,7 +661,7 @@ const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth = getAuth(app);
 const messagesRootRef = ref(db, "messages");
-const messagesQuery = query(messagesRootRef, limitToLast(100));
+const messagesQuery = query(messagesRootRef, limitToLast(50));
 
 /* Connection Indicator */
 const connectionIndicator = document.getElementById("connectionIndicator");
@@ -731,6 +749,12 @@ delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
 m.querySelector(".bubble").appendChild(delBtn);
 }
 chatBox.appendChild(m);
+
+twemoji.parse(m,{
+folder:'svg',
+ext:'.svg'
+});
+
 chatBox.scrollTop=chatBox.scrollHeight;
 
 if(!firstMessageLoaded){
@@ -748,26 +772,8 @@ window.sendMessage = () => {
     localStorage.setItem("messageCount", msgCount);
 
   push(messagesRootRef, {
-  uid: auth.currentUser?.uid || null,
-  name: username,
-  displayName: localStorage.getItem("displayName") || username,
-  pronouns: localStorage.getItem("pronouns") || "",
-  bio: localStorage.getItem("bio") || "",
-  status: localStorage.getItem("status") || "",
-  lastFmUser: localStorage.getItem("lastFmUser") || null,
-  banner: localStorage.getItem("banner") || null,
-  profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
-  profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
-  
-  badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-  joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
-  messageCount: Number(localStorage.getItem("messageCount") || 0),
-  socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-  favoriteSong: localStorage.getItem("favoriteSong") || "",
-  
+  uid: auth.currentUser.uid,
   text: messageInput.value,
-  img: userPFP,
-  time: timeNow(),
   ts: Date.now()
 });
 
@@ -778,14 +784,22 @@ onChildAdded(messagesQuery, snap => {
 
   const m = snap.val();
 
+const profileRef = ref(db, "profiles/" + m.uid);
+
+onValue(profileRef, (profileSnap) => {
+
+  const p = profileSnap.val() || {};
+
   addMessage(
-    m.name || "PLAYER",
-    m.text || "",
-    m.img || "https://via.placeholder.com/36",
-    m.time || timeNow(),
+    p.username || "PLAYER",
+    m.text,
+    p.pfp || "https://via.placeholder.com/36",
+    new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
     snap.key,
-    m
+    p
   );
+
+}, { onlyOnce: true });
 
   if (!windowFocused && m.name !== username) {
     unreadCount++;
@@ -856,6 +870,9 @@ document.getElementById("setUsernameBtn").onclick = () => {
   if (!val) return;
   username = val;
   localStorage.setItem("username", val);
+
+  saveProfileToAccount();
+
   alert("Username updated.");
 };
 
@@ -1526,6 +1543,34 @@ const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
 set(profileRef,profile);
 
 showStatusPopup("Profile saved to account!");
+
+}
+
+function saveProfileToAccount(){
+
+if(!auth.currentUser) return;
+
+const profile={
+username:localStorage.getItem("username"),
+displayName:localStorage.getItem("displayName"),
+pronouns:localStorage.getItem("pronouns"),
+bio:localStorage.getItem("bio"),
+status:localStorage.getItem("status"),
+pfp:localStorage.getItem("pfp"),
+banner:localStorage.getItem("banner"),
+profileColor:localStorage.getItem("profileColor"),
+profileCardBg:localStorage.getItem("profileCardBg"),
+lastFmUser:localStorage.getItem("lastFmUser"),
+badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+joinDate: localStorage.getItem("joinDate"),
+socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+favoriteSong: localStorage.getItem("favoriteSong")
+};
+
+const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
+
+set(profileRef,profile);
+
 }
 
 onAuthStateChanged(auth,(user)=>{
@@ -1562,6 +1607,29 @@ alert("Hey! wolfchat is adding accounts.\n\nPlease sign up with an email + passw
 }
 
 });
+
+
+/* EMOJI PICKER */
+
+const emojiBtn = document.getElementById("emojiBtn");
+const emojiPickerContainer = document.getElementById("emojiPicker");
+
+const picker = new EmojiMart.Picker({
+  theme: "dark",
+  previewPosition: "none",
+  onEmojiSelect: (emoji) => {
+    messageInput.value += emoji.native;
+  }
+});
+
+emojiPickerContainer.appendChild(picker);
+
+emojiBtn.onclick = () => {
+  emojiPickerContainer.style.display =
+    emojiPickerContainer.style.display === "block"
+      ? "none"
+      : "block";
+};
 
 </script>
 
@@ -1618,6 +1686,14 @@ alert("Hey! wolfchat is adding accounts.\n\nPlease sign up with an email + passw
     </div>
   </div>
 </div>
+
+<div id="emojiPicker" style="
+position: fixed;
+bottom: 80px;
+left: 20px;
+display:none;
+z-index:4000;
+"></div>
 
 </body>
 </html>
