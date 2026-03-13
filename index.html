@@ -392,275 +392,6 @@ padding:6px;
 transform:scale(1.15);
 }
 
-/* =========================
-   GLOBAL UI POLISH
-========================= */
-
-::selection{
-background:#2563eb;
-color:white;
-}
-
-*{
-scrollbar-width:thin;
-scrollbar-color:#1e3a8a #020617;
-}
-
-::-webkit-scrollbar{
-width:8px;
-}
-
-::-webkit-scrollbar-track{
-background:#020617;
-}
-
-::-webkit-scrollbar-thumb{
-background:#1e3a8a;
-border-radius:4px;
-}
-
-::-webkit-scrollbar-thumb:hover{
-background:#2563eb;
-}
-
-/* Smooth UI transitions everywhere */
-
-button,
-input,
-.settings-panel,
-.profile-card,
-.bubble,
-.message img,
-.song,
-.tab{
-transition:all .18s cubic-bezier(.2,.8,.2,1);
-}
-
-/* =========================
-   MESSAGE IMPROVEMENTS
-========================= */
-
-.message{
-animation:msgSlide .22s cubic-bezier(.2,.8,.2,1);
-}
-
-@keyframes msgSlide{
-0%{
-opacity:0;
-transform:translateY(14px) scale(.98);
-}
-100%{
-opacity:1;
-transform:translateY(0) scale(1);
-}
-}
-
-/* bubble depth */
-
-.bubble{
-box-shadow:
-0 4px 12px rgba(0,0,0,.45),
-inset 0 0 0 1px rgba(255,255,255,.02);
-}
-
-/* bubble hover glow */
-
-.bubble:hover{
-border-color:#2563eb;
-box-shadow:
-0 6px 20px rgba(0,0,0,.6),
-0 0 10px rgba(37,99,235,.25);
-}
-
-/* avatar hover */
-
-.message img{
-cursor:pointer;
-}
-
-.message img:hover{
-transform:scale(1.08);
-box-shadow:
-0 0 12px rgba(37,99,235,.5);
-}
-
-/* =========================
-   INPUT BAR
-========================= */
-
-.input-box{
-backdrop-filter:blur(6px);
-background:rgba(2,6,23,.75);
-}
-
-.input-box input{
-outline:none;
-}
-
-.input-box input:focus{
-background:rgba(255,255,255,.03);
-}
-
-/* send button feel */
-
-.input-box button:hover{
-background:#2563eb;
-transform:translateY(-2px) scale(1.02);
-box-shadow:0 6px 14px rgba(37,99,235,.35);
-}
-
-/* =========================
-   SETTINGS PANEL
-========================= */
-
-.settings-panel{
-backdrop-filter:blur(8px);
-box-shadow:
--10px 0 30px rgba(0,0,0,.6);
-}
-
-.settings-panel.open{
-animation:panelSlide .35s cubic-bezier(.2,.8,.2,1);
-}
-
-@keyframes panelSlide{
-0%{transform:translateX(40px); opacity:0;}
-100%{transform:translateX(0); opacity:1;}
-}
-
-/* tabs */
-
-.tab:hover{
-background:#1e3a8a;
-transform:translateY(-1px);
-}
-
-.tab.active{
-box-shadow:
-0 0 12px rgba(37,99,235,.4);
-}
-
-/* =========================
-   SETTINGS BUTTON
-========================= */
-
-.settings-btn{
-transition:all .2s ease;
-}
-
-.settings-btn:hover{
-transform:rotate(20deg) scale(1.1);
-box-shadow:0 0 12px rgba(37,99,235,.6);
-}
-
-/* =========================
-   PROFILE MODAL
-========================= */
-
-.profile-modal.active{
-animation:modalFade .25s ease;
-}
-
-@keyframes modalFade{
-from{opacity:0;}
-to{opacity:1;}
-}
-
-.profile-card{
-box-shadow:
-0 10px 40px rgba(0,0,0,.7);
-}
-
-.profile-avatar{
-transition:transform .25s ease;
-}
-
-.profile-avatar:hover{
-transform:scale(1.08);
-}
-
-/* banner glow */
-
-.profile-banner{
-position:relative;
-}
-
-.profile-banner::after{
-content:"";
-position:absolute;
-inset:0;
-background:linear-gradient(transparent,rgba(0,0,0,.6));
-}
-
-/* =========================
-   INTRO SCREEN
-========================= */
-
-.intro-title{
-letter-spacing:1px;
-text-shadow:
-0 0 6px rgba(37,99,235,.35);
-}
-
-.intro-button{
-box-shadow:
-0 4px 12px rgba(0,0,0,.5);
-}
-
-.intro-button:hover{
-box-shadow:
-0 8px 25px rgba(37,99,235,.4);
-}
-
-/* =========================
-   FIRST LAUNCH CARD
-========================= */
-
-.first-launch-card{
-box-shadow:
-0 12px 35px rgba(0,0,0,.7);
-}
-
-/* =========================
-   SONG LIST
-========================= */
-
-.song{
-border-radius:4px;
-}
-
-.song:hover{
-transform:translateX(4px);
-box-shadow:
-0 4px 14px rgba(37,99,235,.25);
-}
-
-/* =========================
-   CONNECTION INDICATOR
-========================= */
-
-.connection-indicator{
-box-shadow:
-0 0 6px rgba(255,255,255,.1);
-}
-
-.connection-indicator:hover{
-transform:scale(1.2);
-}
-
-/* =========================
-   EMOJI BUTTON
-========================= */
-
-#emojiBtn{
-transition:all .2s ease;
-}
-
-#emojiBtn:hover{
-transform:scale(1.25) rotate(6deg);
-filter:drop-shadow(0 0 6px rgba(255,255,255,.3));
-}
-
 </style>
 </head>
 <body>
@@ -838,7 +569,38 @@ Not connected.
 </div>
 
 <div class="chat-container">
+<div id="loginScreen" style="
+position:fixed;
+inset:0;
+background:black;
+display:flex;
+justify-content:center;
+align-items:center;
+z-index:9999;
+">
 
+<div style="
+background:#020617;
+border:2px solid #1e3a8a;
+padding:20px;
+width:320px;
+">
+
+<h3 style="margin-bottom:10px;">login</h3>
+
+<label>Email</label>
+<input id="loginEmail" type="email">
+
+<label>Password</label>
+<input id="loginPassword" type="password">
+
+<button id="loginBtn" style="margin-top:10px;">login</button>
+<button id="signupBtn" style="margin-top:6px;">create account</button>
+
+<div id="loginFeedback"></div>
+
+</div>
+</div>
 <div class="chat-loading" id="chatLoading">
 <div class="loader"></div>
 <span>Loading messages...</span>
@@ -861,6 +623,14 @@ Not connected.
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 import {
   getDatabase,
@@ -919,20 +689,6 @@ connectionIndicator.title="🔴 - terrible connection.";
 }
 updateConnectionStatus();
 setInterval(updateConnectionStatus,20000);
-
-username = "wolf"; // your owner username
-userPFP = "https://via.placeholder.com/36"; // your avatar
-isOwner = true; // enables special features
-localStorage.setItem("username", username);
-localStorage.setItem("pfp", userPFP);
-
-const enterBtn = document.getElementById("enterBtn");
-const introScreen = document.getElementById("introScreen");
-
-enterBtn.addEventListener("click", () => {
-  introScreen.classList.add("hidden"); // hide  intro screen
-  messageInput.focus();
-});
 
 /* Chat */
 const chatBox=document.getElementById("chatBox");
@@ -1019,7 +775,7 @@ window.sendMessage = () => {
   localStorage.setItem("messageCount", msgCount);
 
   push(messagesRootRef, {
-    uid: "wolf-owner"
+    uid: auth.currentUser.uid,
     text: messageInput.value,
     ts: Date.now(),
     username: localStorage.getItem("username") || "PLAYER",
@@ -1042,7 +798,7 @@ let initialLoadTimeout = setTimeout(() => {
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
 
-  // check cache
+  // Check cache first
   if (profileCache[m.uid]) {
     addMessage(
       profileCache[m.uid].username || "PLAYER",
@@ -1053,7 +809,7 @@ onChildAdded(messagesQuery, snap => {
       profileCache[m.uid]
     );
   } else {
-    // get full profile
+    // Fetch full profile from database
     const profileRef = ref(db, "profiles/" + m.uid);
     onValue(profileRef, snapProfile => {
       const profileData = snapProfile.val() || {
@@ -1886,8 +1642,6 @@ emojiBtn.onclick = () => {
       ? "none"
       : "block";
 };
-
-
 
 </script>
 
