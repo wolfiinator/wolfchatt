@@ -785,6 +785,16 @@ window.sendMessage = () => {
   messageInput.value = "";
 };
 
+let initialLoadTimeout = setTimeout(() => {
+  if (!firstMessageLoaded) {
+    chatLoading.style.opacity = 0;
+    chatBox.classList.add("loaded");
+    setTimeout(() => {
+      chatLoading.style.display = "none";
+    }, 500);
+  }
+}, 1500);
+
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
   
@@ -822,19 +832,10 @@ if (!profileCache[m.uid]) {
     if (p) profileCache[m.uid] = p;
   }, { onlyOnce:true });
 }
+
 });
 
-let initialLoadTimeout = setTimeout(() => {
-  if (!firstMessageLoaded) {
-    chatLoading.style.opacity = 0;
-    chatBox.classList.add("loaded");
-    setTimeout(() => {
-      chatLoading.style.display = "none";
-    }, 500);
-  }
-}, 1500);
-
-onChildRemoved(messagesRootRef, snap => {
+onChildRemoved(ref(db,"messages"), snap => {
   const key = snap.key;
   const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
   if (msgElem) {
@@ -1714,4 +1715,3 @@ z-index:4000;
 
 </body>
 </html>
-
