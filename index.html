@@ -796,51 +796,41 @@ let initialLoadTimeout = setTimeout(() => {
 }, 1500);
 
 onChildAdded(messagesQuery, snap => {
+
   const m = snap.val();
-  
-  const render = (p) => {
+
+  const render = (profile) => {
     addMessage(
-      p.username || "PLAYER",
+      profile.username || "PLAYER",
       m.text,
-      p.pfp || "https://via.placeholder.com/36",
+      profile.pfp || "https://via.placeholder.com/36",
       new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
       snap.key,
-      p
+      profile
     );
-    
-    if(!windowFocused){
-      unreadCount++;
-      document.title = `(${unreadCount}) ${originalTitle}`;
-    }
+  };
+
+  if(profileCache[m.uid]){
+    render(profileCache[m.uid]);
+  } else {
+
+    const profileRef = ref(db, "profiles/" + m.uid);
+
+    onValue(profileRef, profileSnap => {
+
+      const profile = profileSnap.val() || {
+        username:"PLAYER",
+        pfp:"https://via.placeholder.com/36"
+      };
+
+      profileCache[m.uid] = profile;
+
+      render(profile);
+
+    }, { onlyOnce:true });
+
   }
 
-  // Use the username/pfp directly from the message first
-addMessage(
-  m.username || "PLAYER",
-  m.text,
-  m.pfp || "https://via.placeholder.com/36",
-  new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
-  snap.key,
-  { username: m.username, pfp: m.pfp }
-);
-
-// Optional: still cache profile if you want updates from Firebase later
-if (!profileCache[m.uid]) {
-  const profileRef = ref(db, "profiles/" + m.uid);
-  onValue(profileRef, snapProfile => {
-    const p = snapProfile.val();
-    if (p) profileCache[m.uid] = p;
-  }, { onlyOnce:true });
-}
-
-});
-
-onChildRemoved(ref(db,"messages"), snap => {
-  const key = snap.key;
-  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
-  if (msgElem) {
-    msgElem.remove(); // Remove it from the DOM on all clients
-  }
 });
 
 /* SETTINGS */
