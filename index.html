@@ -4,76 +4,62 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>wolfchat.</title>
-
-<!-- Minecraftia font -->
 <link href="https://fonts.cdnfonts.com/css/minecraftia" rel="stylesheet">
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-width: 100%;
-height: 100%;
-font-family: 'Minecraftia', monospace;
-background: black;
-color: #c7d2fe;
-overflow: hidden;
+  width: 100%;
+  height: 100%;
+  font-family: 'Minecraftia', monospace;
+  background: black;
+  color: #c7d2fe;
+  overflow: hidden;
 }
 
 body {
-background: linear-gradient(270deg, #000000, #020617, #020617, #000814);
-background-size: 400% 400%;
-animation: bgFade 12s ease infinite;
+  background: linear-gradient(270deg, #000000, #020617, #020617, #000814);
+  background-size: 400% 400%;
+  animation: bgFade 12s ease infinite;
 }
 
 @keyframes bgFade {
-0% { background-position: 0% 50%; }
-50% { background-position: 100% 50%; }
-100% { background-position: 0% 50%; }
-}
-
-@keyframes shake {
-0% { transform: translateX(0); }
-25% { transform: translateX(-5px); }
-50% { transform: translateX(5px); }
-75% { transform: translateX(-5px); }
-100% { transform: translateX(0); }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 /* CHAT */
 .chat-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; position: relative; }
 
 .chat-loading {
-position: absolute;
-top: 0; left: 0;
-width: 100%;
-height: 100%;
-background: rgba(0,0,0,0.85);
-display: flex;
-flex-direction: column;
-justify-content: center;
-align-items: center;
-color: #c7d2fe;
-font-family: 'Minecraftia', monospace;
-font-size: 14px;
-z-index: 1000;
-transition: opacity 0.5s ease;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: #c7d2fe;
+  font-size: 14px;
+  z-index: 1000;
+  transition: opacity 0.5s ease;
 }
 
 .loader {
-width: 40px;
-height: 40px;
-border: 4px solid #1e3a8a;
-border-top: 4px solid #2563eb;
-border-radius: 50%;
-animation: spin 1s linear infinite;
-margin-bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border: 4px solid #1e3a8a;
+  border-top: 4px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
 }
 
-@keyframes spin {
-0% { transform: rotate(0deg); }
-100% { transform: rotate(360deg); }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .chat-box { flex: 1; padding: 16px; overflow-y: auto; opacity: 0; transition: opacity 0.5s ease; }
 .chat-box.loaded { opacity: 1; }
@@ -82,51 +68,58 @@ margin-bottom: 10px;
 @keyframes msgIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .message.user { justify-content: flex-end; }
 .message.other { justify-content: flex-start; }
-.message img { width: 36px; height: 36px; border: 2px solid #1e3a8a; border-radius: 4px; margin: 0 8px; }
+.message img.avatar { width: 36px; height: 36px; border: 2px solid #1e3a8a; border-radius: 4px; margin: 0 8px; cursor: pointer; transition: transform 0.15s, filter 0.15s; }
+.message img.avatar:hover { transform: scale(1.08); filter: brightness(1.2); }
 .bubble { max-width: 65%; padding: 12px 16px; border: 2px solid #1e3a8a; background: #020617; font-size: 14px; position: relative; }
 .user .bubble { background: linear-gradient(#0b1f4b, #081636); }
 .name { font-size: 11px; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
 .name .owner-star { color: orange; font-size: 12px; }
 .time { font-size: 9px; opacity: 0.6; margin-top: 6px; text-align: right; }
 
-/* DELETE BUTTON - PIXEL TRASHCAN */
-.bubble button {
-background: black;
-border: 2px solid grey;
-color: grey;
-font-family: monospace;
-font-weight: bold;
-cursor: pointer;
-padding: 2px 4px;
-margin-left: 6px;
+.bubble .del-btn {
+  background: black;
+  border: 2px solid grey;
+  color: grey;
+  font-family: monospace;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin-left: 6px;
+  font-size: 12px;
 }
-.bubble button:hover { background: grey; color: black; }
+.bubble .del-btn:hover { background: grey; color: black; transform: none; }
+
+/* Twemoji inline */
+.bubble img.emoji {
+  width: 20px;
+  height: 20px;
+  vertical-align: -0.2em;
+  display: inline;
+  border: none;
+  margin: 0 1px;
+}
 
 /* INPUT */
 .input-box { display: flex; align-items: center; border-top: 2px solid #1e3a8a; }
-.input-box input { flex: 1; padding: 14px; background: transparent; border: none; color: #e0e7ff; font-family: inherit; }
-.input-box button { padding: 14px 22px; font-family: inherit; background: #1e3a8a; border: none; color: white; cursor: pointer; }
+.input-box input { flex: 1; padding: 14px; background: transparent; border: none; color: #e0e7ff; font-family: inherit; font-size: 13px; }
+.input-box > button { padding: 14px 22px; font-family: inherit; background: #1e3a8a; border: none; color: white; cursor: pointer; font-size: 12px; }
 
 .connection-indicator {
-width: 14px;
-height: 14px;
-border-radius: 50%;
-background: gray;
-margin: 0 8px 0 10px; /* move slightly to right */
-flex-shrink: 0;
-cursor: help;
-transition: background 0.3s ease;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: gray;
+  margin: 0 8px 0 10px;
+  flex-shrink: 0;
+  cursor: help;
+  transition: background 0.3s ease;
 }
 
 /* SETTINGS */
-.settings-btn { position: fixed; top: 12px; right: 12px; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; font-family: inherit; padding: 6px 10px; cursor: pointer; z-index: 1001; }
+.settings-btn { position: fixed; top: 12px; right: 12px; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; font-family: inherit; padding: 6px 10px; cursor: pointer; z-index: 1001; font-size: 12px; }
 .settings-panel { position: fixed; top: 0; right: -400px; width: 400px; height: 100%; background: #020617; border-left: 2px solid #1e3a8a; padding: 14px; transition: right 0.35s ease; z-index: 1000; font-family: inherit; display: flex; flex-direction: column; overflow-y: auto; }
 .settings-panel.open { right: 0; }
 .settings-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-.tab { flex: 1; font-family: inherit; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; padding: 6px; cursor: pointer; font-size: 11px; }
-.tab.active { background: #1e3a8a; }
-.tab-content { display: none; }
-.tab-content.active { display: block; }
 
 button {
   font-family: inherit;
@@ -140,25 +133,17 @@ button {
   cursor: pointer;
   transition: 0.15s ease;
 }
+button:hover { background: #1e3a8a; transform: translateY(-1px); }
 
-button:hover {
-  background: #1e3a8a;
-  transform: translateY(-1px);
-}
-
-.tab-btn {
-  width: 100%;
-  margin-top: 6px;
-}
+.tab { flex: 1; font-family: inherit; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; padding: 6px; cursor: pointer; font-size: 11px; border-radius: 0; }
+.tab.active { background: #1e3a8a; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.tab-btn { width: 100%; margin-top: 6px; }
 
 label { display: block; font-size: 11px; margin: 8px 0 4px; }
-input[type="file"], input[type="text"], input[type="password"] { width: 100%; padding: 6px; font-family: inherit; background: black; border: 2px solid #1e3a8a; color: #e0e7ff; }
-
-#loginFeedback { display: inline-block; margin-left: 6px; font-size: 11px; }
-
-/* SONGS LIST */
-.song { padding: 8px; border: 2px solid #1e3a8a; margin-top: 6px; font-size: 11px; }
-.song:hover { background: #1e3a8a; cursor: pointer; }
+input[type="file"], input[type="text"], input[type="password"], input[type="email"], input[type="date"], input[type="color"] { width: 100%; padding: 6px; font-family: inherit; background: black; border: 2px solid #1e3a8a; color: #e0e7ff; font-size: 11px; }
+input[type="color"] { height: 34px; padding: 2px; }
 
 /* PROFILE MODAL */
 .profile-modal {
@@ -173,88 +158,36 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   transition: opacity 0.25s ease;
   z-index: 2000;
 }
-
-.profile-modal.active {
-  opacity: 1;
-  pointer-events: all;
-}
+.profile-modal.active { opacity: 1; pointer-events: all; }
 
 .profile-card {
-  --profile-color: #1e3a8a; /* default fallback */
-
+  --profile-color: #1e3a8a;
   width: auto;
   min-width: 340px;
   max-width: 90vw;
-
   background: #111827;
   border: 2px solid var(--profile-color);
   border-radius: 8px;
-
   overflow-wrap: break-word;
   word-break: break-word;
-
   animation: profileIn 0.25s ease;
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
-
 .profile-card.listening {
-  box-shadow:
-    0 0 12px var(--profile-color),
-    0 0 25px var(--profile-color),
-    0 0 40px var(--profile-color);
+  box-shadow: 0 0 12px var(--profile-color), 0 0 25px var(--profile-color), 0 0 40px var(--profile-color);
 }
+@keyframes profileIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-@keyframes profileIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
+.profile-banner { height: 80px; background: linear-gradient(135deg,#1e3a8a,#2563eb); }
+.profile-avatar { width: 80px; height: 80px; border: 4px solid #111827; border-radius: 50%; margin-top: -40px; margin-left: 16px; background: black; }
+.profile-content { padding: 16px; }
+.profile-display { font-size: 16px; }
+.profile-username { font-size: 11px; opacity: 0.6; }
+.profile-pronouns { font-size: 11px; margin-top: 4px; color: #93c5fd; }
+.profile-section { margin-top: 12px; font-size: 12px; }
+.profile-section h4 { font-size: 10px; opacity: 0.5; margin-bottom: 4px; letter-spacing: 1px; }
 
-.profile-banner {
-  height: 80px;
-  background: linear-gradient(135deg,#1e3a8a,#2563eb);
-}
-
-.profile-avatar {
-  width: 80px;
-  height: 80px;
-  border: 4px solid #111827;
-  border-radius: 50%;
-  margin-top: -40px;
-  margin-left: 16px;
-  background: black;
-}
-
-.profile-content {
-  padding: 16px;
-  height: fit-content;
-}
-
-.profile-display {
-  font-size: 16px;
-}
-
-.profile-username {
-  font-size: 11px;
-  opacity: 0.6;
-}
-
-.profile-pronouns {
-  font-size: 11px;
-  margin-top: 4px;
-  color: #93c5fd;
-}
-
-.profile-section {
-  margin-top: 12px;
-  font-size: 12px;
-}
-
-.clickable-avatar:hover {
-  transform: scale(1.08);
-  filter: brightness(1.2);
-}
-
-/* FIRST LAUNCH OVERLAY */
+/* FIRST LAUNCH */
 .first-launch {
   position: fixed;
   inset: 0;
@@ -267,12 +200,7 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   pointer-events: none;
   transition: opacity 0.4s ease;
 }
-
-.first-launch.active {
-  opacity: 1;
-  pointer-events: all;
-}
-
+.first-launch.active { opacity: 1; pointer-events: all; }
 .first-launch-card {
   width: 360px;
   background: #020617;
@@ -281,11 +209,7 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   border-radius: 8px;
   animation: profileIn 0.25s ease;
 }
-
-.first-launch-card h2 {
-  font-size: 14px;
-  margin-bottom: 14px;
-}
+.first-launch-card h2 { font-size: 14px; margin-bottom: 14px; }
 
 /* INTRO SCREEN */
 .intro-screen {
@@ -300,11 +224,7 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   opacity: 1;
   transition: opacity 0.8s ease;
 }
-
-.intro-screen.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
+.intro-screen.hidden { opacity: 0; pointer-events: none; }
 
 .intro-title {
   font-size: 18px;
@@ -313,7 +233,15 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   transform: translateY(20px);
   animation: introFade 1.2s ease forwards;
 }
-
+.intro-subtitle {
+  font-size: 10px;
+  color: #93c5fd;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: introFade 1.5s ease forwards;
+  animation-delay: 0.3s;
+  letter-spacing: 1px;
+}
 .intro-button {
   font-family: 'Minecraftia', monospace;
   font-size: 12px;
@@ -326,33 +254,12 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   transform: translateY(20px);
   animation: introFade 1.2s ease forwards;
   animation-delay: 0.6s;
+  border-radius: 0;
 }
+.intro-button:hover { background: #2563eb; transform: translateY(0) scale(1.05); transition: transform 0.2s ease, background 0.2s ease; }
 
-.intro-button:hover {
-  background: #2563eb;
-  transform: translateY(0) scale(1.05);
-  transition: transform 0.2s ease, background 0.2s ease;
-}
+@keyframes introFade { to { opacity: 1; transform: translateY(0); } }
 
-@keyframes introFade {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Subtitle */
-.intro-subtitle {
-  font-size: 10px;
-  color: #93c5fd;
-  opacity: 0;
-  transform: translateY(20px);
-  animation: introFade 1.5s ease forwards;
-  animation-delay: 0.3s;
-  letter-spacing: 1px;
-}
-
-/* Glitch spark effect */
 .intro-glitch {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -361,7 +268,6 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   animation: glitchAnim 0.6s infinite;
   mix-blend-mode: overlay;
 }
-
 @keyframes glitchAnim {
   0% { transform: translate(0,0); opacity:0.1; }
   25% { transform: translate(2px,-1px); opacity:0.15; }
@@ -370,28 +276,27 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   100% { transform: translate(0,0); opacity:0.1; }
 }
 
-/* Optional: subtle title shimmer */
-.intro-title {
-  position: relative;
-}
+#emojiBtn { background: #020617; border: none; font-size: 20px; cursor: pointer; padding: 6px; }
+#emojiBtn:hover { transform: scale(1.15); }
 
-@keyframes shine {
-  0% { left: -100%; }
-  100% { left: 100%; }
+/* login screen */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  background: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9998;
 }
-
-#emojiBtn{
-background:#020617;
-border:none;
-font-size:20px;
-cursor:pointer;
-padding:6px;
+#loginScreen .login-card {
+  background: #020617;
+  border: 2px solid #1e3a8a;
+  padding: 20px;
+  width: 320px;
 }
-
-#emojiBtn:hover{
-transform:scale(1.15);
-}
-
+#loginScreen .login-card h3 { margin-bottom: 10px; font-size: 13px; }
+#loginFeedback { display: inline-block; margin-left: 6px; font-size: 11px; }
 </style>
 </head>
 <body>
@@ -403,227 +308,200 @@ transform:scale(1.15);
   <div class="intro-glitch"></div>
 </div>
 
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h3>login</h3>
+    <label>Email</label>
+    <input id="loginEmail" type="email" placeholder="email">
+    <label>Password</label>
+    <input id="loginPassword" type="password" placeholder="password">
+    <button id="loginBtn" style="margin-top:10px;width:100%;">login</button>
+    <button id="signupBtn" style="margin-top:6px;width:100%;">create account</button>
+    <div id="loginFeedback" style="margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- SETTINGS BUTTON -->
 <button class="settings-btn" onclick="toggleSettings()">⚙</button>
 
+<!-- SETTINGS PANEL -->
 <div class="settings-panel" id="settingsPanel">
-<div class="settings-tabs">
-<button class="tab active" onclick="openTab('account')">ACCOUNT</button>
-<button class="tab" onclick="openTab('music')">MUSIC</button>
-<button class="tab" onclick="openTab('custom')">CUSTOM</button>
-<button class="tab" onclick="openTab('updates')">UPDATES</button>
-</div>
+  <div class="settings-tabs">
+    <button class="tab active" onclick="openTab('account')">ACCOUNT</button>
+    <button class="tab" onclick="openTab('music')">MUSIC</button>
+    <button class="tab" onclick="openTab('custom')">CUSTOM</button>
+    <button class="tab" onclick="openTab('updates')">UPDATES</button>
+  </div>
 
-<!-- ACCOUNT TAB -->
-<div class="tab-content active" id="account">
+  <!-- ACCOUNT TAB -->
+  <div class="tab-content active" id="account">
+    <h3 style="margin-bottom:10px;font-size:13px;">Account</h3>
+    <label>Email</label>
+    <input id="authEmail" type="email" placeholder="email">
+    <label>Password</label>
+    <input id="authPassword" type="password" placeholder="password">
+    <button class="tab-btn" id="loginAccountBtn">LOGIN</button>
+    <button class="tab-btn" id="signupAccountBtn">SIGN UP</button>
+    <button class="tab-btn" id="logoutAccountBtn">LOG OUT</button>
+    <div id="authStatus" style="margin-top:10px;font-size:11px;opacity:0.7;">Not logged in</div>
+  </div>
 
-<h3 style="margin-bottom:10px;">Account</h3>
+  <!-- MUSIC TAB -->
+  <div class="tab-content" id="music">
+    <h3 style="margin-bottom:10px;font-size:13px;">Last.fm Rich Presence</h3>
+    <label>Last.fm Username</label>
+    <input id="lastFmUsername" placeholder="Enter Last.fm username">
+    <button class="tab-btn" id="setLastFmBtn">CONNECT</button>
+    <div id="lastFmStatus" style="margin-top:12px;font-size:11px;opacity:0.7;">Not connected.</div>
+    <div id="lastFmNowPlaying" style="margin-top:12px;"></div>
+  </div>
 
-<label>Email</label>
-<input id="authEmail" type="email" placeholder="email">
+  <!-- CUSTOM TAB -->
+  <div class="tab-content" id="custom">
+    <label>USERNAME</label>
+    <input id="usernameInput" placeholder="Enter username">
+    <button class="tab-btn" id="setUsernameBtn">SET USERNAME</button>
 
-<label>Password</label>
-<input id="authPassword" type="password" placeholder="password">
+    <label>DISPLAY NAME</label>
+    <input id="displayNameInput" placeholder="Enter display name">
+    <button class="tab-btn" id="setDisplayNameBtn">SET DISPLAY NAME</button>
 
-<button class="tab-btn" id="loginAccountBtn">LOGIN</button>
-<button class="tab-btn" id="signupAccountBtn">SIGN UP</button>
+    <label>PROFILE IMAGE</label>
+    <input type="file" accept="image/*" id="pfpUpload">
+    <button class="tab-btn" id="setPfpBtn">SET PROFILE IMAGE</button>
 
-<button class="tab-btn" id="logoutAccountBtn">LOG OUT</button>
+    <label>PRONOUNS</label>
+    <input id="pronounsInput" placeholder="e.g. he/him">
+    <button class="tab-btn" id="setPronounsBtn">SET PRONOUNS</button>
 
-<div id="authStatus" style="margin-top:10px;font-size:11px;opacity:0.7;">
-Not logged in
-</div>
+    <label>BIO</label>
+    <input id="bioInput" placeholder="Write something cool...">
+    <button class="tab-btn" id="setBioBtn">SET BIO</button>
 
-</div>
+    <label>STATUS</label>
+    <input id="statusInput" placeholder="What's on your mind?">
+    <button class="tab-btn" id="setStatusBtn">SET STATUS</button>
 
-<!-- MUSIC TAB -->
-<div class="tab-content" id="music">
+    <label>BANNER IMAGE</label>
+    <input type="file" accept="image/*" id="bannerUpload">
+    <button class="tab-btn" id="setBannerBtn">SET BANNER</button>
 
-<h3 style="margin-bottom:10px;">Last.fm Rich Presence</h3>
+    <label>PROFILE BORDER COLOR</label>
+    <input type="color" id="colorPicker" value="#1e3a8a">
+    <button class="tab-btn" id="setColorBtn">SET COLOR</button>
 
-<label>Last.fm Username</label>
-<input id="lastFmUsername" placeholder="Enter Last.fm username">
-<button class="tab-btn" id="setLastFmBtn">CONNECT</button>
+    <label>PROFILE BACKGROUND COLOR</label>
+    <input type="color" id="cardBgColorPicker" value="#111827">
+    <button class="tab-btn" id="setCardBgBtn">SET BG COLOR</button>
 
-<div id="lastFmStatus" style="margin-top:12px; font-size:11px; opacity:0.7;">
-Not connected.
-</div>
+    <hr style="margin:12px 0;border-color:#1e3a8a;">
 
-<div id="lastFmNowPlaying" style="margin-top:12px;"></div>
+    <label>JOIN DATE</label>
+    <input type="date" id="joinDateInput">
+    <button class="tab-btn" id="setJoinDateBtn">SET JOIN DATE</button>
 
-</div>
+    <label>BADGES (comma separated)</label>
+    <input id="badgesInput" placeholder="owner, beta, cool">
+    <button class="tab-btn" id="setBadgesBtn">SET BADGES</button>
 
-<!-- CUSTOM TAB -->
-<div class="tab-content" id="custom">
+    <label>FAVORITE SONG</label>
+    <input id="favoriteSongInput" placeholder="Song - Artist">
+    <button class="tab-btn" id="setFavoriteSongBtn">SET FAVORITE SONG</button>
 
-<label>USERNAME</label>
-<input id="usernameInput" placeholder="Enter username">
-<button class="tab-btn" id="setUsernameBtn">SET USERNAME</button>
+    <label>WEBSITE</label>
+    <input id="websiteInput" placeholder="https://example.com">
+    <label>GITHUB</label>
+    <input id="githubInput" placeholder="https://github.com/username">
+    <button class="tab-btn" id="setSocialsBtn">SAVE SOCIAL LINKS</button>
 
-<label>PROFILE IMAGE</label>
-<input type="file" accept="image/*" id="pfpUpload">
-<button class="tab-btn" id="setPfpBtn">SET PROFILE IMAGE</button>
+    <hr style="margin:12px 0;border-color:#1e3a8a;">
 
-<label>DISPLAY NAME</label>
-<input id="displayNameInput" placeholder="Enter display name">
-<button class="tab-btn" id="setDisplayNameBtn">SET DISPLAY NAME</button>
+    <label>PROFILE LAYOUT BACKUP</label>
+    <button class="tab-btn" id="exportLayoutBtn">EXPORT LAYOUT</button>
+    <input type="file" accept="application/json" id="importLayoutUpload" style="margin-top:6px;">
+    <button class="tab-btn" id="importLayoutBtn">IMPORT LAYOUT</button>
+  </div>
 
-<label>PRONOUNS</label>
-<input id="pronounsInput" placeholder="e.g. he/him">
-<button class="tab-btn" id="setPronounsBtn">SET PRONOUNS</button>
-
-<label>BIO</label>
-<input id="bioInput" placeholder="Write something cool...">
-<button class="tab-btn" id="setBioBtn">SET BIO</button>
-
-<label>STATUS</label>
-<input id="statusInput" placeholder="What's on your mind?">
-<button class="tab-btn" id="setStatusBtn">SET STATUS</button>
-
-<label>BANNER IMAGE</label>
-<input type="file" accept="image/*" id="bannerUpload">
-<button class="tab-btn" id="setBannerBtn">SET BANNER</button>
-
-<label>PROFILE BORDER COLOR</label>
-<input type="color" id="colorPicker" value="#1e3a8a">
-<button class="tab-btn" id="setColorBtn">SET COLOR</button>
-
-<label>PROFILE BACKGROUND COLOR</label>
-<input type="color" id="cardBgColorPicker">
-<button class="save-btn" id="setCardBgBtn">SET COLOR</button>
-
-<label>PROFILE LAYOUT BACKUP</label>
-<button class="tab-btn" id="exportLayoutBtn">EXPORT LAYOUT</button>
-<input type="file" accept="application/json" id="importLayoutUpload">
-<button class="tab-btn" id="importLayoutBtn">IMPORT LAYOUT</button>
-
-<hr style="margin:12px 0; border-color:#1e3a8a;">
-
-<label>JOIN DATE</label>
-<input type="date" id="joinDateInput">
-<button class="tab-btn" id="setJoinDateBtn">SET JOIN DATE</button>
-
-<label>BADGES (comma separated)</label>
-<input id="badgesInput" placeholder="owner, beta, cool">
-<button class="tab-btn" id="setBadgesBtn">SET BADGES</button>
-
-<label>FAVORITE SONG</label>
-<input id="favoriteSongInput" placeholder="Song - Artist">
-<button class="tab-btn" id="setFavoriteSongBtn">SET FAVORITE SONG</button>
-
-<label>WEBSITE</label>
-<input id="websiteInput" placeholder="https://example.com">
-
-<label>GITHUB</label>
-<input id="githubInput" placeholder="https://github.com/username">
-
-<button class="tab-btn" id="setSocialsBtn">SAVE SOCIAL LINKS</button>
-
-</div>
-
-<!-- UPDATES TAB -->
-<div class="tab-content" id="updates">
-  <h3 style="margin-bottom:10px;">UPDATES</h3>
-  <div class="song">
-    updates (u) // things i wanna add (a)
-    <br><br>
-    working delete button (u)<br>
-    profile colors (u)<br>
-    new user screen (replaces player - u)<br>
-    fixed issue with last.fm connection erroring out randomly (u)<br>
-    <br><br>
-    typing animations (a)<br>
-    more profile configs (a)<br>
-    mentions (a)<br>
-    edit messages a)<br>
-    pin messages (probably locally since no dms yet - a)<br>
-    chat themes (a)<br>
-    message reactions (a)<br>
-    reply system (a)<br>
-    dms (a)<br>
-    other chat rooms (a)<br>
-    <br><br>
-    thats probably all that im gonna add for now, but ask if you want anything else.<br>
-    - wolf/owner.
+  <!-- UPDATES TAB -->
+  <div class="tab-content" id="updates">
+    <h3 style="margin-bottom:10px;font-size:13px;">UPDATES</h3>
+    <div style="padding:8px;border:2px solid #1e3a8a;font-size:11px;line-height:1.8;">
+      updates (u) // things i wanna add (a)<br><br>
+      working delete button (u)<br>
+      profile colors (u)<br>
+      new user screen (u)<br>
+      firebase profile sync (u)<br>
+      twemoji discord style (u)<br><br>
+      typing animations (a)<br>
+      mentions (a)<br>
+      edit messages (a)<br>
+      pin messages (a)<br>
+      chat themes (a)<br>
+      message reactions (a)<br>
+      reply system (a)<br>
+      dms (a)<br>
+      other chat rooms (a)<br><br>
+      - wolf/owner.
     </div>
   </div>
 </div>
 
+<!-- FIRST LAUNCH OVERLAY -->
 <div id="firstLaunchOverlay" class="first-launch">
   <div class="first-launch-card">
     <h2>welcome to wolfchat.</h2>
-
     <label>choose a username</label>
     <input id="firstUsername" placeholder="enter username">
-
     <label>choose a profile picture</label>
     <input type="file" accept="image/*" id="firstPfp">
-
-    <button id="firstCreateBtn">create profile</button>
-
-    <hr style="margin:14px 0; border-color:#1e3a8a;">
-
-    <label>or load existing profile</label>
-    <input type="file" accept="application/json" id="firstImport">
-    <button id="firstImportBtn">load profile file</button>
+    <button id="firstCreateBtn" style="margin-top:10px;width:100%;">create profile</button>
   </div>
 </div>
 
+<!-- CHAT -->
 <div class="chat-container">
-<div id="loginScreen" style="
-position:fixed;
-inset:0;
-background:black;
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:9999;
-">
-
-<div style="
-background:#020617;
-border:2px solid #1e3a8a;
-padding:20px;
-width:320px;
-">
-
-<h3 style="margin-bottom:10px;">login</h3>
-
-<label>Email</label>
-<input id="loginEmail" type="email">
-
-<label>Password</label>
-<input id="loginPassword" type="password">
-
-<button id="loginBtn" style="margin-top:10px;">login</button>
-<button id="signupBtn" style="margin-top:6px;">create account</button>
-
-<div id="loginFeedback"></div>
-
-</div>
-</div>
-<div class="chat-loading" id="chatLoading">
-<div class="loader"></div>
-<span>Loading messages...</span>
-</div>
-<div class="chat-box" id="chatBox"></div>
-<div class="input-box">
-<div class="connection-indicator" id="connectionIndicator" title="Checking connection..."></div>
-<button id="emojiBtn">😀</button>
-<input id="messageInput" placeholder="TYPE MESSAGE...">
-<button onclick="sendMessage()">SEND</button>
-
-</div>
+  <div class="chat-loading" id="chatLoading">
+    <div class="loader"></div>
+    <span>Loading messages...</span>
+  </div>
+  <div class="chat-box" id="chatBox"></div>
+  <div class="input-box">
+    <div class="connection-indicator" id="connectionIndicator" title="Checking connection..."></div>
+    <button id="emojiBtn">😀</button>
+    <input id="messageInput" placeholder="TYPE MESSAGE...">
+    <button onclick="sendMessage()">SEND</button>
+  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
-<script src="https://twemoji.maxcdn.com/v/latest/twemoji.min.js" crossorigin="anonymous"></script>
+<!-- PROFILE MODAL -->
+<div id="profileModal" class="profile-modal">
+  <div class="profile-card">
+    <div class="profile-banner"></div>
+    <img id="profileAvatar" class="profile-avatar" src="">
+    <div class="profile-content">
+      <div id="profileDisplayName" class="profile-display"></div>
+      <div id="profileUsername" class="profile-username"></div>
+      <div id="profilePronouns" class="profile-pronouns"></div>
+      <div id="profileStatus" style="font-size:11px;margin-top:6px;color:#60a5fa;"></div>
+      <div class="profile-section"><h4>ABOUT ME</h4><p id="profileBio"></p></div>
+      <div class="profile-section"><h4>BADGES</h4><div id="profileBadges"></div></div>
+      <div class="profile-section"><h4>STATS</h4><div id="profileStats"></div></div>
+      <div class="profile-section"><h4>SOCIALS</h4><div id="profileSocials"></div></div>
+      <div class="profile-section"><h4>FAVORITE SONG</h4><div id="profileFavoriteSong"></div></div>
+      <div class="profile-section"><h4>LISTENING TO</h4><div id="profileMusic"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- EMOJI PICKER -->
+<div id="emojiPicker" style="position:fixed;bottom:80px;left:20px;display:none;z-index:4000;"></div>
+
+<!-- EmojiMart -->
 <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
-
-
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -631,12 +509,12 @@ import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
 import {
   getDatabase,
   ref,
   push,
   set,
+  get,
   onChildAdded,
   remove,
   child,
@@ -646,1072 +524,760 @@ import {
   onChildRemoved
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-/* Firebase setup */
 const firebaseConfig = {
-    apiKey: "AIzaSyBg5DGLubsHuH3ub3AtzpRenSMH6x1hZPs",
-    authDomain: "wolfchatlol.firebaseapp.com",
-    databaseURL: "https://wolfchatlol-default-rtdb.firebaseio.com",
-    projectId: "wolfchatlol",
-    storageBucket: "wolfchatlol.firebasestorage.app",
-    messagingSenderId: "654485297853",
-    appId: "1:654485297853:web:6f08ff3c2e102fbed275d4",
-    measurementId: "G-7S4G16W26R"
-  };
-const app=initializeApp(firebaseConfig);
-const db=getDatabase(app);
+  apiKey: "AIzaSyBg5DGLubsHuH3ub3AtzpRenSMH6x1hZPs",
+  authDomain: "wolfchatlol.firebaseapp.com",
+  databaseURL: "https://wolfchatlol-default-rtdb.firebaseio.com",
+  projectId: "wolfchatlol",
+  storageBucket: "wolfchatlol.firebasestorage.app",
+  messagingSenderId: "654485297853",
+  appId: "1:654485297853:web:6f08ff3c2e102fbed275d4"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 const auth = getAuth(app);
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
 
-/* Connection Indicator */
-const connectionIndicator = document.getElementById("connectionIndicator");
-function updateConnectionStatus() {
-const connectedRef = ref(db, ".info/connected");
-onValue(connectedRef, snap => {
-if(snap.val()===true){
-let color="blue", tooltip="🔵 - great connection.";
-if(navigator.connection && navigator.connection.effectiveType){
-switch(navigator.connection.effectiveType){
-case "4g": color="blue"; tooltip="🔵 - great connection."; break;
-case "3g": color="green"; tooltip="🟢 - good connection."; break;
-case "2g": color="yellow"; tooltip="🟡 - okay connection."; break;
-case "slow-2g": color="orange"; tooltip="🟠 - bad connection."; break;
-default: color="red"; tooltip="🔴 - terrible connection.";
-}
-}
-connectionIndicator.style.background=color;
-connectionIndicator.title=tooltip;
-}else{
-connectionIndicator.style.background="red";
-connectionIndicator.title="🔴 - terrible connection.";
-}
-});
-}
-updateConnectionStatus();
-setInterval(updateConnectionStatus,20000);
+// ─── TWEMOJI HELPER ───────────────────────────────────────────────────────────
+// Uses Discord's CDN (same twemoji assets Discord uses)
+function applyTwemoji(el) {
+  el.querySelectorAll("*").forEach(node => {
+    if (node.tagName === "IMG") return; // skip existing images
+  });
 
-/* Chat */
-const chatBox=document.getElementById("chatBox");
-const messageInput=document.getElementById("messageInput");
-const chatLoading = document.getElementById("chatLoading");
-let username = localStorage.getItem("username");
-let userPFP = localStorage.getItem("pfp");
-let isOwner=false;
-let firstMessageLoaded=false;
+  // Walk text nodes and replace emoji codepoints with <img>
+  const DISCORD_TWEMOJI = "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/";
 
+  function codeToHex(cp) {
+    return cp.toString(16).padStart(4, "0");
+  }
+
+  function getEmojiSrc(emojiStr) {
+    const cps = [];
+    let i = 0;
+    while (i < emojiStr.length) {
+      const cp = emojiStr.codePointAt(i);
+      // skip variation selector 0xFE0F
+      if (cp !== 0xFE0F) cps.push(codeToHex(cp));
+      i += cp > 0xFFFF ? 2 : 1;
+    }
+    return DISCORD_TWEMOJI + cps.join("-") + ".svg";
+  }
+
+  // Regex for emoji sequences (ZWJ, flags, modifiers, etc.)
+  const EMOJI_RE = /(\p{Emoji_Presentation}|\p{Extended_Pictographic})(\uFE0F|\u20E3|\uFE0F\u20E3)?(\u200D(\p{Emoji_Presentation}|\p{Extended_Pictographic})(\uFE0F)?)*|[\uD83C][\uDDE6-\uDDFF][\uD83C][\uDDE6-\uDDFF]/gu;
+
+  function processNode(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent;
+      if (!EMOJI_RE.test(text)) return;
+      EMOJI_RE.lastIndex = 0;
+
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      let match;
+      while ((match = EMOJI_RE.exec(text)) !== null) {
+        if (match.index > last) {
+          frag.appendChild(document.createTextNode(text.slice(last, match.index)));
+        }
+        const img = document.createElement("img");
+        img.className = "emoji";
+        img.src = getEmojiSrc(match[0]);
+        img.alt = match[0];
+        img.onerror = () => { img.replaceWith(document.createTextNode(match[0])); };
+        frag.appendChild(img);
+        last = EMOJI_RE.lastIndex;
+      }
+      if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    } else if (
+      node.nodeType === Node.ELEMENT_NODE &&
+      node.tagName !== "SCRIPT" &&
+      node.tagName !== "STYLE" &&
+      !node.classList.contains("emoji")
+    ) {
+      Array.from(node.childNodes).forEach(processNode);
+    }
+  }
+
+  processNode(el);
+}
+
+// ─── PROFILE CACHE ────────────────────────────────────────────────────────────
 const profileCache = {};
-const renderedMessages = new Set();
-let lastNowPlaying = null; // tracks last track sent to chat
 
-// --- PAGE TITLE NOTIFICATIONS ---
-const originalTitle = document.title;
-let unreadCount = 0;
+async function getProfile(uid) {
+  if (profileCache[uid]) return profileCache[uid];
+  const snap = await get(ref(db, "profiles/" + uid));
+  if (snap.exists()) {
+    profileCache[uid] = snap.val();
+    return profileCache[uid];
+  }
+  return null;
+}
+
+// Subscribe to live profile updates so cached profiles stay fresh
+function watchProfile(uid) {
+  onValue(ref(db, "profiles/" + uid), snap => {
+    if (snap.exists()) {
+      profileCache[uid] = snap.val();
+      // Update any rendered messages from this uid
+      document.querySelectorAll(`.message[data-uid="${uid}"]`).forEach(msgEl => {
+        const p = profileCache[uid];
+        const avatarEl = msgEl.querySelector("img.avatar");
+        if (avatarEl && p.pfp) avatarEl.src = p.pfp;
+        const nameEl = msgEl.querySelector(".name");
+        if (nameEl) {
+          const isOwner = (p.username === "wolf");
+          nameEl.innerHTML = (p.username || "PLAYER") + (isOwner ? ' <span class="owner-star">★</span>' : "");
+        }
+      });
+    }
+  });
+}
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let isOwner = false;
+let firstMessageLoaded = false;
 let windowFocused = true;
+let unreadCount = 0;
+const originalTitle = document.title;
 
-window.addEventListener("focus", () => {
-  windowFocused = true;
-  unreadCount = 0;
-  document.title = originalTitle;
+// ─── CONNECTION INDICATOR ─────────────────────────────────────────────────────
+const connectionIndicator = document.getElementById("connectionIndicator");
+onValue(ref(db, ".info/connected"), snap => {
+  if (snap.val() === true) {
+    connectionIndicator.style.background = "blue";
+    connectionIndicator.title = "🔵 - connected.";
+  } else {
+    connectionIndicator.style.background = "red";
+    connectionIndicator.title = "🔴 - disconnected.";
+  }
 });
 
-window.addEventListener("blur", () => {
-  windowFocused = false;
-});
-  
-messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
+// ─── FOCUS TRACKING ───────────────────────────────────────────────────────────
+window.addEventListener("focus", () => { windowFocused = true; unreadCount = 0; document.title = originalTitle; });
+window.addEventListener("blur", () => { windowFocused = false; });
 
-function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+// ─── CHAT ─────────────────────────────────────────────────────────────────────
+const chatBox = document.getElementById("chatBox");
+const messageInput = document.getElementById("messageInput");
+const chatLoading = document.getElementById("chatLoading");
 
-function addMessage(name,text,img,time,key,data){
-const m=document.createElement("div");
-const side=name===username?"user":"other";
-m.className=`message ${side}`;
-m.dataset.key=key;
-let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
-let bubbleHTML = `
-${side==="other"?`<img src="${img}" class="clickable-avatar">`:``}
-<div class="bubble">
-  <div class="name">${name}${ownerStar}</div>
-  ${text}
-  <div class="time">${time}</div>
-</div>
-${side==="user"?`<img src="${img}" class="clickable-avatar">`:``}
-`;
-
-m.innerHTML = bubbleHTML;
-
-m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
-  avatar.onclick = () => openProfile(data);
+messageInput.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
-if(side==="user"||isOwner){
-const delBtn=document.createElement("button");
-delBtn.textContent="🗑";
-delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
-m.querySelector(".bubble").appendChild(delBtn);
-}
-chatBox.appendChild(m);
-
-twemoji.parse(m,{
-folder:'svg',
-ext:'.svg'
-});
-
-chatBox.scrollTop=chatBox.scrollHeight;
-
-if(!firstMessageLoaded){
-firstMessageLoaded=true;
-chatLoading.style.opacity=0;
-chatBox.classList.add("loaded");
-setTimeout(()=>{ chatLoading.style.display="none"; },500);
-}
+function revealChat() {
+  if (firstMessageLoaded) return;
+  firstMessageLoaded = true;
+  chatLoading.style.opacity = 0;
+  chatBox.classList.add("loaded");
+  setTimeout(() => chatLoading.style.display = "none", 500);
 }
 
+setTimeout(revealChat, 1500);
+
+async function addMessage(msgData, key) {
+  const uid = msgData.uid;
+
+  // Fetch profile from Firebase (with cache)
+  let profile = await getProfile(uid);
+  if (!profile) {
+    // Fallback: use data embedded in message (legacy / no-profile users)
+    profile = {
+      username: msgData.username || "PLAYER",
+      pfp: msgData.pfp || "https://placehold.co/36x36/1e3a8a/c7d2fe?text=?"
+    };
+  }
+
+  // Watch for live updates
+  if (uid && !profileCache[uid + "_watched"]) {
+    profileCache[uid + "_watched"] = true;
+    watchProfile(uid);
+  }
+
+  const side = (currentUser && uid === currentUser.uid) ? "user" : "other";
+  const isOwnerMsg = (profile.username === "wolf");
+  const time = new Date(msgData.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  const m = document.createElement("div");
+  m.className = `message ${side}`;
+  m.dataset.key = key;
+  m.dataset.uid = uid;
+
+  const avatarSrc = profile.pfp || "https://placehold.co/36x36/1e3a8a/c7d2fe?text=?";
+
+  m.innerHTML = `
+    ${side === "other" ? `<img src="${avatarSrc}" class="avatar">` : ""}
+    <div class="bubble">
+      <div class="name">${escHtml(profile.username || "PLAYER")}${isOwnerMsg ? ' <span class="owner-star">★</span>' : ""}</div>
+      <span class="msg-text">${escHtml(msgData.text)}</span>
+      <div class="time">${time}</div>
+    </div>
+    ${side === "user" ? `<img src="${avatarSrc}" class="avatar">` : ""}
+  `;
+
+  // Avatar click → open profile
+  m.querySelectorAll(".avatar").forEach(av => {
+    av.onclick = () => openProfileModal(uid);
+  });
+
+  // Delete button (own messages or owner)
+  if (side === "user" || isOwner) {
+    const delBtn = document.createElement("button");
+    delBtn.className = "del-btn";
+    delBtn.textContent = "🗑";
+    delBtn.onclick = () => {
+      remove(child(ref(db, "messages"), key));
+      m.remove();
+    };
+    m.querySelector(".bubble").appendChild(delBtn);
+  }
+
+  // Apply twemoji to message text
+  applyTwemoji(m.querySelector(".msg-text"));
+
+  chatBox.appendChild(m);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  revealChat();
+
+  if (!windowFocused) {
+    unreadCount++;
+    document.title = `(${unreadCount}) ${originalTitle}`;
+  }
+}
+
+function escHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// ─── SEND MESSAGE ──────────────────────────────────────────────────────────────
 window.sendMessage = () => {
-  if (!messageInput.value.trim()) return;
-
-  let msgCount = Number(localStorage.getItem("messageCount") || 0);
-  msgCount++;
-  localStorage.setItem("messageCount", msgCount);
+  if (!currentUser) return showStatusPopup("Please log in first.");
+  const text = messageInput.value.trim();
+  if (!text) return;
 
   push(messagesRootRef, {
-    uid: auth.currentUser.uid,
-    text: messageInput.value,
-    ts: Date.now(),
-    username: localStorage.getItem("username") || "PLAYER",
-    pfp: localStorage.getItem("pfp") || "https://via.placeholder.com/36"
+    uid: currentUser.uid,
+    text,
+    ts: Date.now()
+    // NO profile data embedded — always fetched from /profiles/:uid
   });
 
   messageInput.value = "";
 };
 
-let initialLoadTimeout = setTimeout(() => {
-  if (!firstMessageLoaded) {
-    chatLoading.style.opacity = 0;
-    chatBox.classList.add("loaded");
-    setTimeout(() => {
-      chatLoading.style.display = "none";
-    }, 500);
-  }
-}, 1500);
-
+// ─── LISTEN FOR MESSAGES ──────────────────────────────────────────────────────
 onChildAdded(messagesQuery, snap => {
-  const m = snap.val();
-  
-  const render = (p) => {
-    addMessage(
-      p.username || "PLAYER",
-      m.text,
-      p.pfp || "https://via.placeholder.com/36",
-      new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
-      snap.key,
-      p
-    );
-    
-    if(!windowFocused){
-      unreadCount++;
-      document.title = `(${unreadCount}) ${originalTitle}`;
-    }
-  }
+  addMessage(snap.val(), snap.key);
+});
 
-  // Use the username/pfp directly from the message first
-addMessage(
-  m.username || "PLAYER",
-  m.text,
-  m.pfp || "https://via.placeholder.com/36",
-  new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
-  snap.key,
-  { username: m.username, pfp: m.pfp }
-);
+onChildRemoved(ref(db, "messages"), snap => {
+  const el = chatBox.querySelector(`.message[data-key="${snap.key}"]`);
+  if (el) el.remove();
+});
 
-// Optional: still cache profile if you want updates from Firebase later
-if (!profileCache[m.uid]) {
-  const profileRef = ref(db, "profiles/" + m.uid);
-  onValue(profileRef, snapProfile => {
-    const p = snapProfile.val();
-    if (p) profileCache[m.uid] = p;
-  }, { onlyOnce:true });
+// ─── SAVE PROFILE TO FIREBASE ─────────────────────────────────────────────────
+function buildProfileObject() {
+  return {
+    username:     localStorage.getItem("username") || "PLAYER",
+    displayName:  localStorage.getItem("displayName") || "",
+    pronouns:     localStorage.getItem("pronouns") || "",
+    bio:          localStorage.getItem("bio") || "",
+    status:       localStorage.getItem("status") || "",
+    pfp:          localStorage.getItem("pfp") || "",
+    banner:       localStorage.getItem("banner") || "",
+    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+    profileCardBg:localStorage.getItem("profileCardBg") || "#111827",
+    lastFmUser:   localStorage.getItem("lastFmUser") || "",
+    badges:       JSON.parse(localStorage.getItem("badges") || "[]"),
+    joinDate:     localStorage.getItem("joinDate") || "",
+    socials:      JSON.parse(localStorage.getItem("socials") || "{}"),
+    favoriteSong: localStorage.getItem("favoriteSong") || "",
+    messageCount: Number(localStorage.getItem("messageCount") || 0)
+  };
 }
 
-});
+function saveProfileToFirebase() {
+  if (!currentUser) return;
+  const profile = buildProfileObject();
+  // Update cache immediately
+  profileCache[currentUser.uid] = profile;
+  set(ref(db, "profiles/" + currentUser.uid), profile);
+}
 
-onChildRemoved(ref(db,"messages"), snap => {
-  const key = snap.key;
-  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
-  if (msgElem) {
-    msgElem.remove(); // Remove it from the DOM on all clients
-  }
-});
+// Helper: save a single field to localStorage + Firebase
+function saveField(key, value) {
+  localStorage.setItem(key, value);
+  saveProfileToFirebase();
+}
 
-/* SETTINGS */
-window.toggleSettings=()=>document.getElementById("settingsPanel").classList.toggle("open");
-window.openTab=id=>{
-document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
-document.querySelector(`[onclick="openTab('${id}')"]`).classList.add("active");
-document.getElementById(id).classList.add("active");
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
+window.toggleSettings = () => document.getElementById("settingsPanel").classList.toggle("open");
+window.openTab = id => {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+  document.querySelector(`.tab[onclick="openTab('${id}')"]`).classList.add("active");
+  document.getElementById(id).classList.add("active");
 };
 
-/* Profile */
-window.saveProfile = () => {
-  const usernameInput = document.getElementById("usernameInput");
-  const displayNameInput = document.getElementById("displayNameInput");
-  const pronounsInput = document.getElementById("pronounsInput");
-  const bioInput = document.getElementById("bioInput");
-
-  if (usernameInput.value.trim()) {
-    username = usernameInput.value.trim();
-    localStorage.setItem("username", username);
-  }
-
-  localStorage.setItem("displayName", displayNameInput.value.trim());
-  localStorage.setItem("pronouns", pronounsInput.value.trim());
-  localStorage.setItem("bio", bioInput.value.trim());
-
-  const pfpUpload = document.getElementById("pfpUpload");
-  if (pfpUpload.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      userPFP = e.target.result;
-      localStorage.setItem("pfp", userPFP);
-    };
-    reader.readAsDataURL(pfpUpload.files[0]);
-  }
-
-  alert("Profile saved!");
-};
-
-/* CUSTOM TAB BUTTONS */
-
+// ─── CUSTOM TAB BUTTONS ──────────────────────────────────────────────────────
 document.getElementById("setUsernameBtn").onclick = () => {
   const val = document.getElementById("usernameInput").value.trim();
   if (!val) return;
-  username = val;
   localStorage.setItem("username", val);
-
-  saveProfileToAccount();
-
-  alert("Username updated.");
+  saveProfileToFirebase();
+  showStatusPopup("Username updated!");
 };
 
 document.getElementById("setDisplayNameBtn").onclick = () => {
-  const val = document.getElementById("displayNameInput").value.trim();
-  localStorage.setItem("displayName", val);
-  alert("Display name updated.");
+  saveField("displayName", document.getElementById("displayNameInput").value.trim());
+  showStatusPopup("Display name updated!");
 };
 
 document.getElementById("setPronounsBtn").onclick = () => {
-  const val = document.getElementById("pronounsInput").value.trim();
-  localStorage.setItem("pronouns", val);
-  alert("Pronouns updated.");
+  saveField("pronouns", document.getElementById("pronounsInput").value.trim());
+  showStatusPopup("Pronouns updated!");
 };
 
 document.getElementById("setBioBtn").onclick = () => {
-  const val = document.getElementById("bioInput").value.trim();
-  localStorage.setItem("bio", val);
-  alert("Bio updated.");
+  saveField("bio", document.getElementById("bioInput").value.trim());
+  showStatusPopup("Bio updated!");
+};
+
+document.getElementById("setStatusBtn").onclick = () => {
+  saveField("status", document.getElementById("statusInput").value.trim());
+  showStatusPopup("Status updated!");
 };
 
 document.getElementById("setPfpBtn").onclick = () => {
   const file = document.getElementById("pfpUpload").files[0];
-  if (!file) return alert("Select an image first.");
-
+  if (!file) return showStatusPopup("Select an image first.");
   const reader = new FileReader();
   reader.onload = e => {
-    userPFP = e.target.result;
-    localStorage.setItem("pfp", userPFP);
-    alert("Profile picture updated.");
+    localStorage.setItem("pfp", e.target.result);
+    saveProfileToFirebase();
+    showStatusPopup("Profile picture updated!");
   };
   reader.readAsDataURL(file);
 };
 
 document.getElementById("setBannerBtn").onclick = () => {
   const file = document.getElementById("bannerUpload").files[0];
-  if (!file) return alert("Select a banner first.");
-
+  if (!file) return showStatusPopup("Select a banner first.");
   const reader = new FileReader();
   reader.onload = e => {
     localStorage.setItem("banner", e.target.result);
-    alert("Banner updated.");
+    saveProfileToFirebase();
+    showStatusPopup("Banner updated!");
   };
   reader.readAsDataURL(file);
 };
 
 document.getElementById("setColorBtn").onclick = () => {
-  const val = document.getElementById("colorPicker").value;
-  localStorage.setItem("profileColor", val);
-  alert("Profile color updated.");
-};
-
-document.getElementById("setCardBgBtn").onclick = () => {
-  const color = document.getElementById("cardBgColorPicker").value;
-
-  localStorage.setItem("profileCardBg", color);
-
-  const profileCard = document.querySelector(".profile-card");
-  if (profileCard) {
-    profileCard.style.background = color;
-  }
-
-  showStatusPopup("Profile background updated!");
-};
-
-document.getElementById("setColorBtn").onclick = () => {
-  const val = document.getElementById("colorPicker").value;
-  localStorage.setItem("profileColor", val);
-
-  // Update the profile card border if modal is open
-  const profileCard = document.querySelector(".profile-card");
-  if(profileCard){
-    profileCard.style.borderColor = val;
-  }
-
+  saveField("profileColor", document.getElementById("colorPicker").value);
   showStatusPopup("Profile color updated!");
 };
 
-function getProfileLayout() {
-  return {
-    username: localStorage.getItem("username") || "",
-    displayName: localStorage.getItem("displayName") || "",
-    pronouns: localStorage.getItem("pronouns") || "",
-    bio: localStorage.getItem("bio") || "",
-    status: localStorage.getItem("status") || "",
-    banner: localStorage.getItem("banner") || "",
-    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
-    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
-    pfp: localStorage.getItem("pfp") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || ""
-  };
-}
-
-function hydrateProfileFields(layout) {
-  document.getElementById("usernameInput").value = layout.username || "";
-  document.getElementById("displayNameInput").value = layout.displayName || "";
-  document.getElementById("pronounsInput").value = layout.pronouns || "";
-  document.getElementById("bioInput").value = layout.bio || "";
-  document.getElementById("statusInput").value = layout.status || "";
-  document.getElementById("colorPicker").value = layout.profileColor || "#1e3a8a";
-  document.getElementById("lastFmUsername").value = layout.lastFmUser || "";
-}
-
-document.getElementById("exportLayoutBtn").onclick = () => {
-  const layout = getProfileLayout();
-  const payload = JSON.stringify(layout, null, 2);
-  const blob = new Blob([payload], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const downloadLink = document.createElement("a");
-  downloadLink.href = url;
-  downloadLink.download = `${layout.username || "wolfchat"}-layout.json`;
-  document.body.appendChild(downloadLink);
-  downloadLink.click();
-  downloadLink.remove();
-  URL.revokeObjectURL(url);
-};
-
-document.getElementById("importLayoutBtn").onclick = () => {
-  const file = document.getElementById("importLayoutUpload").files[0];
-  if (!file) return alert("Select a layout JSON file first.");
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const layout = JSON.parse(e.target.result);
-
-      const fields = [
-        "username",
-       "displayName",
-       "pronouns",
-        "bio",
-       "status",
-        "banner",
-        "profileColor",
-        "profileCardBg",
-        "pfp",
-        "lastFmUser"
-      ];
-      fields.forEach(field => {
-        if (typeof layout[field] === "string") {
-          localStorage.setItem(field, layout[field]);
-        }
-      });
-
-      username = localStorage.getItem("username") || "PLAYER";
-      userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/36";
-
-      hydrateProfileFields(getProfileLayout());
-      updateLastFmPresence();
-
-      const restoredLastFmUser = localStorage.getItem("lastFmUser");
-      lastFmStatus.textContent = restoredLastFmUser
-        ? `Connected as ${restoredLastFmUser}`
-        : "Not connected.";
-
-      alert("Layout imported successfully.");
-    } catch {
-      alert("Invalid layout file.");
-    }
-  };
-
-  reader.readAsText(file);
-};
-
-document.getElementById("setStatusBtn").onclick = () => {
-  const val = document.getElementById("statusInput").value.trim();
-  localStorage.setItem("status", val);
-  alert("Status updated.");
+document.getElementById("setCardBgBtn").onclick = () => {
+  saveField("profileCardBg", document.getElementById("cardBgColorPicker").value);
+  showStatusPopup("Profile background updated!");
 };
 
 document.getElementById("setJoinDateBtn").onclick = () => {
   const val = document.getElementById("joinDateInput").value;
   if (!val) return;
-  localStorage.setItem("joinDate", val);
-  alert("Join date updated.");
+  saveField("joinDate", val);
+  showStatusPopup("Join date updated!");
 };
 
 document.getElementById("setBadgesBtn").onclick = () => {
-  const val = document.getElementById("badgesInput").value;
-  const arr = val.split(",").map(b => b.trim()).filter(Boolean);
+  const arr = document.getElementById("badgesInput").value.split(",").map(b => b.trim()).filter(Boolean);
   localStorage.setItem("badges", JSON.stringify(arr));
-  alert("Badges updated.");
+  saveProfileToFirebase();
+  showStatusPopup("Badges updated!");
 };
 
 document.getElementById("setFavoriteSongBtn").onclick = () => {
-  const val = document.getElementById("favoriteSongInput").value.trim();
-  localStorage.setItem("favoriteSong", val);
-  alert("Favorite song updated.");
+  saveField("favoriteSong", document.getElementById("favoriteSongInput").value.trim());
+  showStatusPopup("Favorite song updated!");
 };
 
 document.getElementById("setSocialsBtn").onclick = () => {
   const socials = {
     website: document.getElementById("websiteInput").value.trim(),
-    github: document.getElementById("githubInput").value.trim()
+    github:  document.getElementById("githubInput").value.trim()
   };
   localStorage.setItem("socials", JSON.stringify(socials));
-  alert("Social links saved.");
+  saveProfileToFirebase();
+  showStatusPopup("Social links saved!");
 };
 
-async function openProfile(data){
-  if(!data) return;
+// ─── EXPORT / IMPORT LAYOUT ───────────────────────────────────────────────────
+document.getElementById("exportLayoutBtn").onclick = () => {
+  const layout = buildProfileObject();
+  const blob = new Blob([JSON.stringify(layout, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${layout.username || "wolfchat"}-layout.json`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+};
 
-  document.getElementById("profileAvatar").src = data.img;
-  const bannerDiv = document.querySelector(".profile-banner");
+document.getElementById("importLayoutBtn").onclick = () => {
+  const file = document.getElementById("importLayoutUpload").files[0];
+  if (!file) return showStatusPopup("Select a layout JSON file first.");
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const layout = JSON.parse(e.target.result);
+      const strFields = ["username","displayName","pronouns","bio","status","banner","profileColor","profileCardBg","pfp","lastFmUser","joinDate","favoriteSong"];
+      strFields.forEach(k => { if (typeof layout[k] === "string") localStorage.setItem(k, layout[k]); });
+      if (layout.badges) localStorage.setItem("badges", JSON.stringify(layout.badges));
+      if (layout.socials) localStorage.setItem("socials", JSON.stringify(layout.socials));
+      hydrateProfileFields();
+      saveProfileToFirebase();
+      showStatusPopup("Layout imported!");
+    } catch { showStatusPopup("Invalid layout file."); }
+  };
+  reader.readAsText(file);
+};
 
-if (data.banner) {
-  bannerDiv.style.background = `url(${data.banner}) center/cover`;
-} else {
-  bannerDiv.style.background = "linear-gradient(135deg,#1e3a8a,#2563eb)";
+function hydrateProfileFields() {
+  const g = k => localStorage.getItem(k) || "";
+  document.getElementById("usernameInput").value     = g("username");
+  document.getElementById("displayNameInput").value  = g("displayName");
+  document.getElementById("pronounsInput").value     = g("pronouns");
+  document.getElementById("bioInput").value          = g("bio");
+  document.getElementById("statusInput").value       = g("status");
+  document.getElementById("colorPicker").value       = g("profileColor") || "#1e3a8a";
+  document.getElementById("cardBgColorPicker").value = g("profileCardBg") || "#111827";
+  document.getElementById("lastFmUsername").value    = g("lastFmUser");
+  document.getElementById("badgesInput").value       = JSON.parse(g("badges") || "[]").join(", ");
+  document.getElementById("favoriteSongInput").value = g("favoriteSong");
+  const socials = JSON.parse(g("socials") || "{}");
+  document.getElementById("websiteInput").value = socials.website || "";
+  document.getElementById("githubInput").value  = socials.github  || "";
 }
-  document.getElementById("profileDisplayName").textContent = data.displayName || data.name;
-  document.getElementById("profileUsername").textContent = "@" + data.name;
-  document.getElementById("profilePronouns").textContent = data.pronouns || "";
-  document.getElementById("profileStatus").textContent = data.status || "";
-  document.getElementById("profileBio").textContent = data.bio || "No bio set.";
-  // ===== BADGES =====
-const badgeContainer = document.getElementById("profileBadges");
-badgeContainer.innerHTML = "";
-if (data.badges && data.badges.length) {
-  data.badges.forEach(b => {
-    const span = document.createElement("span");
-    span.textContent = "🏅 " + b;
-    span.style.fontSize = "10px";
-    span.style.marginRight = "6px";
-    badgeContainer.appendChild(span);
-  });
-}
 
-// ===== STATS =====
-document.getElementById("profileStats").innerHTML = `
-  <div>Joined: ${data.joinDate ? new Date(data.joinDate).toDateString() : "Unknown"}</div>
-  <div>Messages: ${data.messageCount || 0}</div>
-`;
+// ─── ACCOUNT TAB ──────────────────────────────────────────────────────────────
+document.getElementById("loginAccountBtn").onclick = async () => {
+  try {
+    await signInWithEmailAndPassword(auth, document.getElementById("authEmail").value, document.getElementById("authPassword").value);
+    showStatusPopup("Logged in!");
+  } catch(err) { showStatusPopup(err.message, 3000); }
+};
 
-// ===== SOCIALS =====
-const socialDiv = document.getElementById("profileSocials");
-socialDiv.innerHTML = "";
-if (data.socials) {
-  if (data.socials.website) {
-    socialDiv.innerHTML += `<div><a href="${data.socials.website}" target="_blank">🌐 Website</a></div>`;
+document.getElementById("signupAccountBtn").onclick = async () => {
+  try {
+    await createUserWithEmailAndPassword(auth, document.getElementById("authEmail").value, document.getElementById("authPassword").value);
+    showStatusPopup("Account created!");
+  } catch(err) { showStatusPopup(err.message, 3000); }
+};
+
+document.getElementById("logoutAccountBtn").onclick = () => { signOut(auth); showStatusPopup("Logged out."); };
+
+// ─── AUTH STATE ───────────────────────────────────────────────────────────────
+const loginScreen  = document.getElementById("loginScreen");
+const loginFeedback = document.getElementById("loginFeedback");
+
+document.getElementById("loginBtn").onclick = async () => {
+  const email = document.getElementById("loginEmail").value;
+  const pass  = document.getElementById("loginPassword").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+    loginFeedback.textContent = "logged in!";
+    loginFeedback.style.color = "lightgreen";
+  } catch(err) {
+    loginFeedback.textContent = err.message;
+    loginFeedback.style.color = "red";
   }
-  if (data.socials.github) {
-    socialDiv.innerHTML += `<div><a href="${data.socials.github}" target="_blank">💻 GitHub</a></div>`;
+};
+
+document.getElementById("signupBtn").onclick = async () => {
+  const email = document.getElementById("loginEmail").value;
+  const pass  = document.getElementById("loginPassword").value;
+  try {
+    await createUserWithEmailAndPassword(auth, email, pass);
+    loginFeedback.textContent = "account created! logging in...";
+    loginFeedback.style.color = "lightgreen";
+  } catch(err) {
+    loginFeedback.textContent = err.message;
+    loginFeedback.style.color = "red";
   }
+};
+
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+
+  if (user) {
+    loginScreen.style.display = "none";
+    document.getElementById("authStatus").textContent = "Logged in as " + user.email;
+    isOwner = false; // will be set below if username=wolf in their profile
+
+    // Load profile from Firebase into localStorage
+    const snap = await get(ref(db, "profiles/" + user.uid));
+    if (snap.exists()) {
+      const data = snap.val();
+      const strFields = ["username","displayName","pronouns","bio","status","pfp","banner","profileColor","profileCardBg","lastFmUser","joinDate","favoriteSong"];
+      strFields.forEach(k => { if (data[k]) localStorage.setItem(k, data[k]); });
+      if (data.badges) localStorage.setItem("badges", JSON.stringify(data.badges));
+      if (data.socials) localStorage.setItem("socials", JSON.stringify(data.socials));
+
+      profileCache[user.uid] = data;
+      isOwner = (data.username === "wolf");
+      hydrateProfileFields();
+    } else {
+      // New account — show first launch if no username yet
+      if (!localStorage.getItem("username")) {
+        document.getElementById("firstLaunchOverlay").classList.add("active");
+      } else {
+        // Push existing localStorage profile up to Firebase
+        saveProfileToFirebase();
+      }
+    }
+
+    // Watch for profile changes from other devices
+    onValue(ref(db, "profiles/" + user.uid), snap => {
+      if (snap.exists()) {
+        profileCache[user.uid] = snap.val();
+      }
+    });
+
+  } else {
+    currentUser = null;
+    loginScreen.style.display = "flex";
+    document.getElementById("authStatus").textContent = "Not logged in";
+  }
+});
+
+// ─── PROFILE MODAL ────────────────────────────────────────────────────────────
+const lastFmApiKey = "c08ea0f29eef2eec1c27b99a86afe75d";
+
+async function getNowPlaying(lfmUser) {
+  try {
+    const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${lfmUser}&api_key=${lastFmApiKey}&format=json&limit=1`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.error || !data.recenttracks?.track?.length) return null;
+    const track = data.recenttracks.track[0];
+    return {
+      title: track.name || "Unknown",
+      artist: track.artist?.["#text"] || "Unknown",
+      cover: track.image?.length ? track.image[track.image.length-1]["#text"] : "",
+      nowPlaying: track["@attr"]?.nowplaying === "true"
+    };
+  } catch { return null; }
 }
 
-// ===== FAVORITE SONG =====
-document.getElementById("profileFavoriteSong").textContent =
-  data.favoriteSong || "No favorite song set.";
-  document.querySelector(".profile-card").style.borderColor =
-  data.profileColor || "#1e3a8a";
-  document.querySelector(".profile-card").style.background =
-  data.profileCardBg || "#111111";
+async function openProfileModal(uid) {
+  const profile = await getProfile(uid);
+  if (!profile) return;
+
+  const card = document.querySelector(".profile-card");
+  const bannerDiv = card.querySelector(".profile-banner");
+
+  document.getElementById("profileAvatar").src = profile.pfp || "https://placehold.co/80x80/1e3a8a/c7d2fe?text=?";
+  bannerDiv.style.background = profile.banner
+    ? `url(${profile.banner}) center/cover`
+    : "linear-gradient(135deg,#1e3a8a,#2563eb)";
+
+  document.getElementById("profileDisplayName").textContent = profile.displayName || profile.username || "PLAYER";
+  document.getElementById("profileUsername").textContent    = "@" + (profile.username || "player");
+  document.getElementById("profilePronouns").textContent    = profile.pronouns || "";
+  document.getElementById("profileStatus").textContent      = profile.status || "";
+  document.getElementById("profileBio").textContent         = profile.bio || "No bio set.";
+
+  const badgeContainer = document.getElementById("profileBadges");
+  badgeContainer.innerHTML = "";
+  if (profile.badges?.length) {
+    profile.badges.forEach(b => {
+      const span = document.createElement("span");
+      span.textContent = "🏅 " + b;
+      span.style.cssText = "font-size:10px;margin-right:6px;";
+      badgeContainer.appendChild(span);
+    });
+  }
+
+  document.getElementById("profileStats").innerHTML = `
+    <div>Joined: ${profile.joinDate ? new Date(profile.joinDate).toDateString() : "Unknown"}</div>
+    <div>Messages: ${profile.messageCount || 0}</div>
+  `;
+
+  const socialDiv = document.getElementById("profileSocials");
+  socialDiv.innerHTML = "";
+  if (profile.socials?.website) socialDiv.innerHTML += `<div><a href="${escHtml(profile.socials.website)}" target="_blank" style="color:#60a5fa;">🌐 Website</a></div>`;
+  if (profile.socials?.github)  socialDiv.innerHTML += `<div><a href="${escHtml(profile.socials.github)}" target="_blank" style="color:#60a5fa;">💻 GitHub</a></div>`;
+
+  document.getElementById("profileFavoriteSong").textContent = profile.favoriteSong || "No favorite song set.";
+
+  card.style.borderColor = profile.profileColor || "#1e3a8a";
+  card.style.background  = profile.profileCardBg || "#111827";
+  card.classList.remove("listening");
 
   const musicSection = document.getElementById("profileMusic");
-  const profileCard = document.querySelector(".profile-card");
-profileCard.classList.remove("listening");
-  if(!data.lastFmUser){
-    musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not connected to Last.fm</div>`;
+  if (!profile.lastFmUser) {
+    musicSection.innerHTML = `<div style="font-size:11px;opacity:0.5;">not connected to Last.fm</div>`;
   } else {
-    musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">loading...</div>`;
-
-    const track = await getNowPlaying(data.lastFmUser);
-
-    if(track && track.nowPlaying){
-      profileCard.classList.add("listening");
+    musicSection.innerHTML = `<div style="font-size:11px;opacity:0.5;">loading...</div>`;
+    const track = await getNowPlaying(profile.lastFmUser);
+    if (track?.nowPlaying) {
+      card.classList.add("listening");
       musicSection.innerHTML = `
-        <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-          ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
+        <div style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+          ${track.cover ? `<img src="${track.cover}" style="width:50px;height:50px;border-radius:6px;">` : ""}
           <div>
-            <div style="font-size:12px;">🎵 ${track.title}</div>
-            <div style="font-size:10px; opacity:0.6;">${track.artist}</div>
+            <div style="font-size:12px;">🎵 ${escHtml(track.title)}</div>
+            <div style="font-size:10px;opacity:0.6;">${escHtml(track.artist)}</div>
           </div>
-        </div>
-      `;
+        </div>`;
     } else {
-      musicSection.innerHTML = `<div style="font-size:11px; opacity:0.5;">not listening right now</div>`;
+      musicSection.innerHTML = `<div style="font-size:11px;opacity:0.5;">not listening right now</div>`;
     }
   }
 
   document.getElementById("profileModal").classList.add("active");
 }
 
-/* ===== LAST.FM RICH PRESENCE ===== */
-
-const lastFmApiKey = "c08ea0f29eef2eec1c27b99a86afe75d";
-const lastFmStatus = document.getElementById("lastFmStatus");
-const lastFmNowPlaying = document.getElementById("lastFmNowPlaying");
-const profileMusic = document.getElementById("profileMusic");
-
-let activePopup = null;
-
-function showStatusPopup(message, duration=1500) {
-
-    if(activePopup) {
-        activePopup.remove();
-        activePopup = null;
-    }
-
-    let popup = document.createElement("div");
-    activePopup = popup;
-
-    popup.style.position = "fixed";
-    popup.style.top = "20px";
-    popup.style.left = "20px";
-    popup.style.background = "#020617";
-    popup.style.border = "2px solid #1e3a8a";
-    popup.style.padding = "10px 14px";
-    popup.style.borderRadius = "6px";
-    popup.style.fontFamily = "'Minecraftia', monospace";
-    popup.style.color = "#c7d2fe";
-    popup.style.zIndex = 3000;
-    popup.style.opacity = 0;
-    popup.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-    popup.style.transform = "translateY(-20px)";
-    popup.textContent = message;
-
-    document.body.appendChild(popup);
-
-    setTimeout(() => {
-        popup.style.opacity = 1;
-        popup.style.transform = "translateY(0)";
-    }, 50);
-
-    setTimeout(() => {
-        popup.style.opacity = 0;
-        popup.style.transform = "translateY(-20px)";
-        setTimeout(()=>{
-            popup.remove();
-            if(activePopup === popup) activePopup = null;
-        }, 300);
-    }, duration);
-}
-
-// ===== LAST.FM RICH PRESENCE =====
-async function getNowPlaying(username) {
-    const url = `https://ws.audioscrobbler.com/2.0/?method=user.getrecenttracks&user=${username}&api_key=${lastFmApiKey}&format=json&limit=1`;
-    try {
-        const res = await fetch(url);
-        if(!res.ok) return null;
-
-        const data = await res.json();
-        if(data.error) return null;
-        if(!data.recenttracks?.track?.length) return null;
-
-        const track = data.recenttracks.track[0];
-
-        return {
-            title: track.name || "Unknown",
-            artist: track.artist?.["#text"] || "Unknown",
-            album: track.album?.["#text"] || "",
-            cover: track.image?.length ? track.image[track.image.length-1]["#text"] : "",
-            nowPlaying: track["@attr"]?.nowplaying === "true"
-        };
-    } catch(e){
-        console.error("getNowPlaying error:", e);
-        return null;
-    }
-}
-
-document.getElementById("setLastFmBtn").onclick = async () => {
-    const input = document.getElementById("lastFmUsername").value.trim();
-    if(!input) return alert("Enter your Last.fm username or profile link.");
-
-    let extractedUsername = input;
-
-    try {
-        const url = new URL(input);
-        if (url.hostname.includes("last.fm")) {
-            const parts = url.pathname.split("/");
-            const userIndex = parts.indexOf("user");
-            if (userIndex !== -1 && parts[userIndex + 1]) {
-                extractedUsername = parts[userIndex + 1];
-            }
-        }
-    } catch {}
-
-    showStatusPopup("Connecting...");
-
-    try {
-        const res = await fetch(
-          `https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${extractedUsername}&api_key=${lastFmApiKey}&format=json`
-        );
-
-        const data = await res.json();
-
-        if(data.error){
-            showStatusPopup("Failed - account does not exist", 3000);
-            return;
-        }
-
-        // ✅ Account exists — save it
-        localStorage.setItem("lastFmUser", extractedUsername);
-        lastFmStatus.textContent = `Connected as ${extractedUsername}`;
-        showStatusPopup("Connected!");
-
-        updateLastFmPresence();
-
-    } catch(e) {
-        showStatusPopup("Network error - try again", 3000);
-        console.error(e);
-    }
-};
-
-// Update profile modal & MUSIC tab
-async function updateLastFmPresence() {
-  const username = localStorage.getItem("lastFmUser");
-  if(!username) return;
-
-  const track = await getNowPlaying(username);
-
-  const html = track && track.nowPlaying
-    ? `
-      <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
-        ${track.cover ? `<img src="${track.cover}" style="width:50px; height:50px; border-radius:6px;">` : ""}
-        <div>
-          <div style="font-size:12px;">🎵 ${track.title}</div>
-          <div style="font-size:10px; opacity:0.6;">${track.artist}</div>
-        </div>
-      </div>
-    `
-    : `<div style="font-size:11px; opacity:0.5;">not listening to anything</div>`;
-
-  lastFmNowPlaying.innerHTML = html;
-}
-
-// Refresh every 5 seconds
-setInterval(updateLastFmPresence, 5000);
-
-// On page load, restore if user had connected before
-const overlay = document.getElementById("firstLaunchOverlay");
-
-if (!localStorage.getItem("username")) {
-  overlay.classList.add("active");
-} else {
-  username = localStorage.getItem("username");
-  userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/36";
-}
-window.addEventListener("DOMContentLoaded", () => {
-  const username = localStorage.getItem("lastFmUser");
-  if(username) {
-    document.getElementById("lastFmUsername").value = username;
-    lastFmStatus.textContent = `Connected as ${username}`;
-    updateLastFmPresence();
+document.getElementById("profileModal").addEventListener("click", e => {
+  if (e.target === document.getElementById("profileModal")) {
+    document.getElementById("profileModal").classList.remove("active");
   }
-
-  hydrateProfileFields(getProfileLayout());
 });
 
-// Close profile modal when clicking outside
-const profileModal = document.getElementById("profileModal");
+// ─── LAST.FM MUSIC TAB ────────────────────────────────────────────────────────
+const lastFmStatus = document.getElementById("lastFmStatus");
+const lastFmNowPlaying = document.getElementById("lastFmNowPlaying");
 
-if (profileModal) {
-  profileModal.addEventListener("click", (e) => {
-    if (e.target === profileModal) {
-      profileModal.classList.remove("active");
+document.getElementById("setLastFmBtn").onclick = async () => {
+  let input = document.getElementById("lastFmUsername").value.trim();
+  if (!input) return;
+  try {
+    const url = new URL(input);
+    if (url.hostname.includes("last.fm")) {
+      const parts = url.pathname.split("/");
+      const idx = parts.indexOf("user");
+      if (idx !== -1 && parts[idx+1]) input = parts[idx+1];
     }
-  });
-}
+  } catch {}
 
+  showStatusPopup("Connecting...");
+  try {
+    const res = await fetch(`https://ws.audioscrobbler.com/2.0/?method=user.getinfo&user=${input}&api_key=${lastFmApiKey}&format=json`);
+    const data = await res.json();
+    if (data.error) { showStatusPopup("Account not found.", 3000); return; }
+    localStorage.setItem("lastFmUser", input);
+    lastFmStatus.textContent = `Connected as ${input}`;
+    saveProfileToFirebase();
+    showStatusPopup("Connected!");
+    updateLastFmPresence();
+  } catch { showStatusPopup("Network error — try again.", 3000); }
+};
+
+async function updateLastFmPresence() {
+  const lfmUser = localStorage.getItem("lastFmUser");
+  if (!lfmUser) return;
+  const track = await getNowPlaying(lfmUser);
+  lastFmNowPlaying.innerHTML = track?.nowPlaying
+    ? `<div style="display:flex;gap:10px;align-items:center;margin-top:10px;">
+        ${track.cover ? `<img src="${track.cover}" style="width:50px;height:50px;border-radius:6px;">` : ""}
+        <div>
+          <div style="font-size:12px;">🎵 ${escHtml(track.title)}</div>
+          <div style="font-size:10px;opacity:0.6;">${escHtml(track.artist)}</div>
+        </div>
+       </div>`
+    : `<div style="font-size:11px;opacity:0.5;">not listening to anything</div>`;
+}
+setInterval(updateLastFmPresence, 5000);
+
+// ─── FIRST LAUNCH ────────────────────────────────────────────────────────────
 document.getElementById("firstCreateBtn").onclick = () => {
   const name = document.getElementById("firstUsername").value.trim();
-  const file = document.getElementById("firstPfp").files[0];
-
-  if (!name) {
-    alert("Enter a username.");
-    return;
-  }
-
+  if (!name) { showStatusPopup("Enter a username."); return; }
   localStorage.setItem("username", name);
-  username = name;
-
+  const file = document.getElementById("firstPfp").files[0];
   if (file) {
     const reader = new FileReader();
     reader.onload = e => {
-      userPFP = e.target.result;
-      localStorage.setItem("pfp", userPFP);
+      localStorage.setItem("pfp", e.target.result);
       finishFirstLaunch();
     };
     reader.readAsDataURL(file);
   } else {
-    userPFP = "https://via.placeholder.com/36";
-    localStorage.setItem("pfp", userPFP);
     finishFirstLaunch();
   }
 };
 
 function finishFirstLaunch() {
   document.getElementById("firstLaunchOverlay").classList.remove("active");
-  showStatusPopup("profile created!");
+  saveProfileToFirebase();
+  showStatusPopup("Profile created!");
 }
 
-document.getElementById("firstImportBtn").onclick = () => {
-  const file = document.getElementById("firstImport").files[0];
-  if (!file) return alert("Select a profile file.");
-
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const layout = JSON.parse(e.target.result);
-
-      Object.keys(layout).forEach(key => {
-        localStorage.setItem(key, layout[key]);
-      });
-
-      username = localStorage.getItem("username");
-      userPFP = localStorage.getItem("pfp");
-
-      finishFirstLaunch();
-    } catch {
-      alert("Invalid profile file.");
-    }
-  };
-
-  reader.readAsText(file);
+// ─── INTRO SCREEN ────────────────────────────────────────────────────────────
+document.getElementById("enterBtn").onclick = () => {
+  const intro = document.getElementById("introScreen");
+  intro.classList.add("hidden");
+  setTimeout(() => intro.style.display = "none", 800);
 };
 
-/* INTRO SCREEN LOGIC */
-const introScreen = document.getElementById("introScreen");
-const enterBtn = document.getElementById("enterBtn");
-
-enterBtn.onclick = () => {
-  introScreen.classList.add("hidden");
-
+// ─── STATUS POPUP ────────────────────────────────────────────────────────────
+let activePopup = null;
+function showStatusPopup(message, duration = 1500) {
+  if (activePopup) { activePopup.remove(); activePopup = null; }
+  const popup = document.createElement("div");
+  activePopup = popup;
+  Object.assign(popup.style, {
+    position:"fixed", top:"20px", left:"20px",
+    background:"#020617", border:"2px solid #1e3a8a",
+    padding:"10px 14px", borderRadius:"6px",
+    fontFamily:"'Minecraftia',monospace", color:"#c7d2fe",
+    zIndex:3000, opacity:0, transition:"opacity 0.3s ease, transform 0.3s ease",
+    transform:"translateY(-20px)", fontSize:"11px"
+  });
+  popup.textContent = message;
+  document.body.appendChild(popup);
+  setTimeout(() => { popup.style.opacity = 1; popup.style.transform = "translateY(0)"; }, 50);
   setTimeout(() => {
-    introScreen.style.display = "none";
-  }, 800);
-};
-
-/* GOOGLE LOGIN */
-
-window.handleGoogleLogin = function(response){
-
-  const payload = JSON.parse(atob(response.credential.split(".")[1]));
-
-  const email = payload.email;
-  const name = payload.name;
-  const picture = payload.picture;
-
-  localStorage.setItem("googleUser", email);
-
-  if(!localStorage.getItem("username")){
-    username = name;
-    localStorage.setItem("username", name);
-  }
-
-  if(!localStorage.getItem("pfp")){
-    userPFP = picture;
-    localStorage.setItem("pfp", picture);
-  }
-
-  document.getElementById("googleLoginOverlay").style.display = "none";
-
-};
-
-const loginScreen = document.getElementById("loginScreen");
-const loginBtn = document.getElementById("loginBtn");
-const signupBtn = document.getElementById("signupBtn");
-const loginFeedback = document.getElementById("loginFeedback");
-
-loginBtn.onclick = async () => {
-
-const email = document.getElementById("loginEmail").value;
-const password = document.getElementById("loginPassword").value;
-
-try{
-await signInWithEmailAndPassword(auth,email,password);
-loginFeedback.textContent="logged in!";
-loginFeedback.style.color="lightgreen";
-}catch(err){
-loginFeedback.textContent=err.message;
-loginFeedback.style.color="red";
+    popup.style.opacity = 0; popup.style.transform = "translateY(-20px)";
+    setTimeout(() => { popup.remove(); if (activePopup === popup) activePopup = null; }, 300);
+  }, duration);
 }
 
-};
-
-signupBtn.onclick = async () => {
-
-const email = document.getElementById("loginEmail").value;
-const password = document.getElementById("loginPassword").value;
-
-try{
-await createUserWithEmailAndPassword(auth,email,password);
-loginFeedback.textContent="account created!";
-loginFeedback.style.color="lightgreen";
-}catch(err){
-loginFeedback.textContent=err.message;
-loginFeedback.style.color="red";
-}
-
-};
-
-onAuthStateChanged(auth,(user)=>{
-if(user){
-loginScreen.style.display="none";
-}else{
-loginScreen.style.display="flex";
-}
-});
-
-const authStatus=document.getElementById("authStatus");
-
-document.getElementById("loginAccountBtn").onclick=async()=>{
-
-const email=document.getElementById("authEmail").value;
-const pass=document.getElementById("authPassword").value;
-
-try{
-await signInWithEmailAndPassword(auth,email,pass);
-showStatusPopup("Logged in!");
-}catch(err){
-showStatusPopup(err.message,3000);
-}
-
-};
-
-document.getElementById("signupAccountBtn").onclick=async()=>{
-
-const email=document.getElementById("authEmail").value;
-const pass=document.getElementById("authPassword").value;
-
-try{
-await createUserWithEmailAndPassword(auth,email,pass);
-showStatusPopup("Account created!");
-
-migrateLocalProfile();
-
-}catch(err){
-showStatusPopup(err.message,3000);
-}
-
-};
-
-document.getElementById("logoutAccountBtn").onclick=()=>{
-signOut(auth);
-showStatusPopup("Logged out");
-};
-
-onAuthStateChanged(auth,(user)=>{
-
-if(user){
-authStatus.textContent="Logged in as "+user.email;
-}else{
-authStatus.textContent="Not logged in";
-}
-
-});
-
-function migrateLocalProfile(){
-
-if(!auth.currentUser) return;
-
-const profile={
-username:localStorage.getItem("username"),
-displayName:localStorage.getItem("displayName"),
-pronouns:localStorage.getItem("pronouns"),
-bio:localStorage.getItem("bio"),
-status:localStorage.getItem("status"),
-pfp:localStorage.getItem("pfpUrl"),
-banner:localStorage.getItem("bannerUrl"),
-profileColor:localStorage.getItem("profileColor"),
-profileCardBg:localStorage.getItem("profileCardBg"),
-lastFmUser:localStorage.getItem("lastFmUser")
-};
-
-const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
-
-set(profileRef,profile);
-
-showStatusPopup("Profile saved to account!");
-
-}
-
-function saveProfileToAccount(){
-
-if(!auth.currentUser) return;
-
-const profile={
-username:localStorage.getItem("username"),
-displayName:localStorage.getItem("displayName"),
-pronouns:localStorage.getItem("pronouns"),
-bio:localStorage.getItem("bio"),
-status:localStorage.getItem("status"),
-pfp:localStorage.getItem("pfp"),
-banner:localStorage.getItem("banner"),
-profileColor:localStorage.getItem("profileColor"),
-profileCardBg:localStorage.getItem("profileCardBg"),
-lastFmUser:localStorage.getItem("lastFmUser"),
-badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-joinDate: localStorage.getItem("joinDate"),
-socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-favoriteSong: localStorage.getItem("favoriteSong")
-};
-
-const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
-
-set(profileRef,profile);
-
-}
-
-onAuthStateChanged(auth,(user)=>{
-
-if(!user) return;
-
-const profileRef=ref(db,"profiles/"+user.uid);
-
-onValue(profileRef,(snap)=>{
-
-if(!snap.exists()) return;
-
-const data=snap.val();
-
-Object.keys(data).forEach(k=>{
-if(data[k]) localStorage.setItem(k,data[k]);
-});
-
-username=data.username||username;
-userPFP=data.pfp||userPFP;
-
-});
-
-});
-
-window.addEventListener("load",()=>{
-
-if(localStorage.getItem("username") && !auth.currentUser){
-
-setTimeout(()=>{
-alert("Hey! wolfchat is adding accounts.\n\nPlease sign up with an email + password.\n\nYour profile will be saved to your account and synced across devices.");
-},2000);
-
-}
-
-});
-
-
-/* EMOJI PICKER */
-
-const emojiBtn = document.getElementById("emojiBtn");
+// ─── EMOJI PICKER ────────────────────────────────────────────────────────────
 const emojiPickerContainer = document.getElementById("emojiPicker");
-
 const picker = new EmojiMart.Picker({
   theme: "dark",
   previewPosition: "none",
-  onEmojiSelect: (emoji) => {
+  onEmojiSelect: emoji => {
     messageInput.value += emoji.native;
+    messageInput.focus();
   }
 });
-
 emojiPickerContainer.appendChild(picker);
 
-emojiBtn.onclick = () => {
+document.getElementById("emojiBtn").onclick = () => {
   emojiPickerContainer.style.display =
-    emojiPickerContainer.style.display === "block"
-      ? "none"
-      : "block";
+    emojiPickerContainer.style.display === "block" ? "none" : "block";
 };
 
+// ─── INIT ────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  const lfmUser = localStorage.getItem("lastFmUser");
+  if (lfmUser) {
+    lastFmStatus.textContent = `Connected as ${lfmUser}`;
+    updateLastFmPresence();
+  }
+  hydrateProfileFields();
+});
+
 </script>
-
-<div id="profileModal" class="profile-modal">
-  <div class="profile-card">
-    
-    <div class="profile-banner"></div>
-    <img id="profileAvatar" class="profile-avatar">
-
-    <div class="profile-content">
-
-      <!-- Basic Info -->
-      <div id="profileDisplayName" class="profile-display"></div>
-      <div id="profileUsername" class="profile-username"></div>
-      <div id="profilePronouns" class="profile-pronouns"></div>
-      <div id="profileStatus" style="font-size:11px; margin-top:6px; color:#60a5fa;"></div>
-
-      <!-- About -->
-      <div class="profile-section">
-        <h4>ABOUT ME</h4>
-        <p id="profileBio"></p>
-      </div>
-
-      <!-- Badges -->
-      <div class="profile-section">
-        <h4>BADGES</h4>
-        <div id="profileBadges"></div>
-      </div>
-
-      <!-- Stats -->
-      <div class="profile-section">
-        <h4>STATS</h4>
-        <div id="profileStats"></div>
-      </div>
-
-      <!-- Social Links -->
-      <div class="profile-section">
-        <h4>SOCIALS</h4>
-        <div id="profileSocials"></div>
-      </div>
-
-      <!-- Favorite Song -->
-      <div class="profile-section">
-        <h4>FAVORITE SONG</h4>
-        <div id="profileFavoriteSong"></div>
-      </div>
-
-      <!-- Currently Listening -->
-      <div class="profile-section">
-        <h4>LISTENING TO</h4>
-        <div id="profileMusic"></div>
-      </div>
-
-    </div>
-  </div>
-</div>
-
-<div id="emojiPicker" style="
-position: fixed;
-bottom: 80px;
-left: 20px;
-display:none;
-z-index:4000;
-"></div>
-
 </body>
 </html>
