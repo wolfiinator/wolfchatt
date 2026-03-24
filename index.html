@@ -797,41 +797,49 @@ let initialLoadTimeout = setTimeout(() => {
 
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
-
-  // Check cache first
-  if (profileCache[m.uid]) {
+  
+  const render = (p) => {
     addMessage(
-      profileCache[m.uid].username || "PLAYER",
+      p.username || "PLAYER",
       m.text,
-      profileCache[m.uid].pfp || "https://via.placeholder.com/36",
+      p.pfp || "https://via.placeholder.com/36",
       new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
       snap.key,
-      profileCache[m.uid]
+      p
     );
-  } else {
-    // Fetch full profile from database
-    const profileRef = ref(db, "profiles/" + m.uid);
-    onValue(profileRef, snapProfile => {
-      const profileData = snapProfile.val() || {
-        username: m.username || "PLAYER",
-        pfp: m.pfp || "https://via.placeholder.com/36"
-      };
-      profileCache[m.uid] = profileData; // cache it
-
-      addMessage(
-        profileData.username,
-        m.text,
-        profileData.pfp,
-        new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
-        snap.key,
-        profileData
-      );
-    }, { onlyOnce: true });
+    
+    if(!windowFocused){
+      unreadCount++;
+      document.title = `(${unreadCount}) ${originalTitle}`;
+    }
   }
 
-  if(!windowFocused){
-    unreadCount++;
-    document.title = `(${unreadCount}) ${originalTitle}`;
+  // Use the username/pfp directly from the message first
+addMessage(
+  m.username || "PLAYER",
+  m.text,
+  m.pfp || "https://via.placeholder.com/36",
+  new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+  snap.key,
+  { username: m.username, pfp: m.pfp }
+);
+
+// Optional: still cache profile if you want updates from Firebase later
+if (!profileCache[m.uid]) {
+  const profileRef = ref(db, "profiles/" + m.uid);
+  onValue(profileRef, snapProfile => {
+    const p = snapProfile.val();
+    if (p) profileCache[m.uid] = p;
+  }, { onlyOnce:true });
+}
+
+});
+
+onChildRemoved(ref(db,"messages"), snap => {
+  const key = snap.key;
+  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
+  if (msgElem) {
+    msgElem.remove(); // Remove it from the DOM on all clients
   }
 });
 
@@ -1556,28 +1564,26 @@ showStatusPopup("Profile saved to account!");
 
 }
 
-function saveProfileToAccount() {
-  if (!auth.currentUser) return;
-  
-  const profileRef = ref(db, "profiles/" + auth.currentUser.uid);
-  
-  set(profileRef, {
-    username: localStorage.getItem("username") || "PLAYER",
-    displayName: localStorage.getItem("displayName") || "",
-    pronouns: localStorage.getItem("pronouns") || "",
-    bio: localStorage.getItem("bio") || "",
-    status: localStorage.getItem("status") || "",
-    banner: localStorage.getItem("banner") || "",
-    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
-    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
-    pfp: localStorage.getItem("pfp") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || "",
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-    joinDate: localStorage.getItem("joinDate") || "",
-    favoriteSong: localStorage.getItem("favoriteSong") || "",
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-  });
-}
+function saveProfileToAccount(){
+
+if(!auth.currentUser) return;
+
+const profile={
+username:localStorage.getItem("username"),
+displayName:localStorage.getItem("displayName"),
+pronouns:localStorage.getItem("pronouns"),
+bio:localStorage.getItem("bio"),
+status:localStorage.getItem("status"),
+pfp:localStorage.getItem("pfp"),
+banner:localStorage.getItem("banner"),
+profileColor:localStorage.getItem("profileColor"),
+profileCardBg:localStorage.getItem("profileCardBg"),
+lastFmUser:localStorage.getItem("lastFmUser"),
+badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+joinDate: localStorage.getItem("joinDate"),
+socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+favoriteSong: localStorage.getItem("favoriteSong")
+};
 
 const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
 
