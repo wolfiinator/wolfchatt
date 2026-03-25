@@ -806,7 +806,7 @@ onValue(userRef, snap => {
   messageInput.value = "";
 };
 
-onChildAdded(messagesQuery, snap => {
+onChildAdded(messagesRootRef, snap => {
   const m = snap.val();
   if (!m || !m.uid) return;
 
