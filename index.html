@@ -688,7 +688,6 @@ connectionIndicator.title="🔴 - terrible connection.";
 });
 }
 updateConnectionStatus();
-setInterval(updateConnectionStatus,20000);
 
 /* Chat */
 const chatBox=document.getElementById("chatBox");
@@ -781,12 +780,9 @@ onValue(userRef, snap => {
   set(userRef, current + 1);
 }, { onlyOnce: true });
 
-  push(messagesRootRef, {
-    uid: auth.currentUser.uid,
-    text: messageInput.value,
-    ts: Date.now(),
-
-    // ✅ ADD THESE
+  // ALWAYS SAVE PROFILE BEFORE SENDING MESSAGE
+if (auth.currentUser) {
+  set(ref(db, "profiles/" + auth.currentUser.uid), {
     username: localStorage.getItem("username") || "PLAYER",
     pfp: localStorage.getItem("pfp") || "",
     displayName: localStorage.getItem("displayName") || "",
@@ -802,11 +798,16 @@ onValue(userRef, snap => {
     socials: JSON.parse(localStorage.getItem("socials") || "{}"),
     favoriteSong: localStorage.getItem("favoriteSong") || ""
   });
+}
+
+push(messagesRootRef, {
 
   messageInput.value = "";
 };
 
-onChildAdded(messagesRootRef, snap => {
+onChildAdded(messagesQuery, snap => {
+  if (renderedMessages.has(snap.key)) return;
+    renderedMessages.add(snap.key);
   const m = snap.val();
   if (!m || !m.uid) return;
 
@@ -845,7 +846,7 @@ onChildAdded(messagesRootRef, snap => {
   }
 });
 
-onChildRemoved(ref(db,"messages"), snap => {
+onChildRemoved(messagesRootRef, snap => {
   const key = snap.key;
   const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
   if (msgElem) {
@@ -1595,12 +1596,6 @@ socials: JSON.parse(localStorage.getItem("socials") || "{}"),
 favoriteSong: localStorage.getItem("favoriteSong")
 };
 
-const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
-
-set(profileRef,profile);
-
-}
-
 onAuthStateChanged(auth,(user)=>{
 
 if(!user) return;
@@ -1721,8 +1716,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
 <div id="emojiPicker" style="
 position: fixed;
-bottom: 80px;
-left: 20px;
+bottom: 70px;
+left: 50%;
+transform: translateX(-50%);
 display:none;
 z-index:4000;
 "></div>
