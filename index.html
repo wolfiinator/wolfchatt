@@ -774,8 +774,8 @@ window.sendMessage = () => {
   if (!messageInput.value.trim() || !auth.currentUser) return;
 
   const msg = {
-    text: messageInput.value,
     uid: auth.currentUser.uid,
+    text: messageInput.value,
     ts: Date.now()
   };
 
@@ -1498,12 +1498,14 @@ loginFeedback.style.color="red";
 
 };
 
-onAuthStateChanged(auth,(user)=>{
-if(user){
-loginScreen.style.display="none";
-}else{
-loginScreen.style.display="flex";
-}
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loginScreen.style.display = "none";
+    authStatus.textContent = "Logged in as " + user.email;
+  } else {
+    loginScreen.style.display = "flex";
+    authStatus.textContent = "Not logged in";
+  }
 });
 
 const authStatus=document.getElementById("authStatus");
@@ -1544,14 +1546,14 @@ signOut(auth);
 showStatusPopup("Logged out");
 };
 
-onAuthStateChanged(auth,(user)=>{
-
-if(user){
-authStatus.textContent="Logged in as "+user.email;
-}else{
-authStatus.textContent="Not logged in";
-}
-
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loginScreen.style.display = "none";
+    authStatus.textContent = "Logged in as " + user.email;
+  } else {
+    loginScreen.style.display = "flex";
+    authStatus.textContent = "Not logged in";
+  }
 });
 
 function migrateLocalProfile(){
@@ -1600,9 +1602,9 @@ socials: JSON.parse(localStorage.getItem("socials") || "{}"),
 favoriteSong: localStorage.getItem("favoriteSong")
 };
 
-onAuthStateChanged(auth,(user)=>{
+const user = auth.currentUser;
 
-if(!user) return;
+if (!user) return;
 
 const profileRef=ref(db,"profiles/"+user.uid);
 
