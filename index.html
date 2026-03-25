@@ -772,13 +772,17 @@ setTimeout(()=>{ chatLoading.style.display="none"; },500);
 
 window.sendMessage = () => {
   if (!messageInput.value.trim() || !auth.currentUser) return;
-  
-const userRef = ref(db, "profiles/" + auth.currentUser.uid + "/messageCount");
 
-onValue(userRef, snap => {
-  const current = snap.val() || 0;
-  set(userRef, current + 1);
-}, { onlyOnce: true });
+  const msg = {
+    text: messageInput.value,
+    uid: auth.currentUser.uid,
+    ts: Date.now()
+  };
+
+  push(messagesRootRef, msg);
+
+  messageInput.value = "";
+};
 
   // ALWAYS SAVE PROFILE BEFORE SENDING MESSAGE
 if (auth.currentUser) {
