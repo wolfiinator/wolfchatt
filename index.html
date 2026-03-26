@@ -392,6 +392,13 @@ padding:6px;
 transform:scale(1.15);
 }
 
+  video 
+{
+    width: 200%;
+    max-width: 400px;
+    max-height: 300px;
+}
+  
 </style>
 </head>
 <body>
@@ -544,6 +551,41 @@ Not connected.
     <br><br>
     thats probably all that im gonna add for now, but ask if you want anything else.<br>
     - wolf/owner.
+  <br/>
+    <br/>
+    <video id="randomVideoPlayer" controls>
+  Your browser does not support the video tag.
+</video>
+
+    <script>
+      // Array of video sources
+  var videoList = [
+    "https://files.catbox.moe/ztw5b1.mp4",
+    "https://files.catbox.moe/dj0r9k.mp4",
+    "https://files.catbox.moe/n8xy9h.mp4",
+    "https://files.catbox.moe/vp8zor.mp4",
+    "https://files.catbox.moe/ehz12n.mp4",
+    "https://files.catbox.moe/c7jza8.mp4",
+    "https://files.catbox.moe/15zd6z.mp4",
+    "https://files.catbox.moe/2f4g30.mp4"
+  ];
+
+  // Function to get a random video URL
+  function getRandomVideoUrl() {
+    var randomIndex = Math.floor(Math.random() * videoList.length);
+    return videoList[randomIndex];
+  }
+
+  // Function to load the random video on page load
+  window.onload = function() {
+    var videoPlayer = document.getElementById("randomVideoPlayer");
+    var randomVideoSrc = getRandomVideoUrl();
+    videoPlayer.src = randomVideoSrc;
+    videoPlayer.load(); 
+    videoPlayer.volume = 0.025;
+
+  };
+    </script>
     </div>
   </div>
 </div>
