@@ -573,7 +573,7 @@ Not connected.
 position:fixed;
 inset:0;
 background:black;
-display:flex;
+display:none;
 justify-content:center;
 align-items:center;
 z-index:9999;
@@ -741,11 +741,7 @@ ${side==="user"?`<img src="${img}" class="clickable-avatar">`:``}
 m.innerHTML = bubbleHTML;
 
 m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
-avatar.onclick = () => openProfile({
-  name: name,
-  ...data
-});
-
+  avatar.onclick = () => openProfile(data);
 });
 
 if(side==="user"||isOwner){
@@ -772,84 +768,70 @@ setTimeout(()=>{ chatLoading.style.display="none"; },500);
 }
 
 window.sendMessage = () => {
-  if (!messageInput.value.trim() || !auth.currentUser) return;
-  
-const userRef = ref(db, "profiles/" + auth.currentUser.uid + "/messageCount");
+  if (!messageInput.value.trim()) return;
 
-onValue(userRef, snap => {
-  const current = snap.val() || 0;
-  set(userRef, current + 1);
-}, { onlyOnce: true });
+  let msgCount = Number(localStorage.getItem("messageCount") || 0);
+  msgCount++;
+  localStorage.setItem("messageCount", msgCount);
 
   push(messagesRootRef, {
-    uid: auth.currentUser.uid,
-    text: messageInput.value,
-    ts: Date.now(),
-
-    // ✅ ADD THESE
-    username: localStorage.getItem("username") || "PLAYER",
-    pfp: localStorage.getItem("pfp") || "",
-    displayName: localStorage.getItem("displayName") || "",
-    pronouns: localStorage.getItem("pronouns") || "",
-    bio: localStorage.getItem("bio") || "",
-    status: localStorage.getItem("status") || "",
-    banner: localStorage.getItem("banner") || "",
-    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
-    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
-    lastFmUser: localStorage.getItem("lastFmUser") || "",
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-    joinDate: localStorage.getItem("joinDate") || "",
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-    favoriteSong: localStorage.getItem("favoriteSong") || ""
-  });
+  uid: auth.currentUser.uid,
+  text: messageInput.value,
+  ts: Date.now(),
+  username: username || "PLAYER",
+  pfp: userPFP || "https://via.placeholder.com/36"
+});
 
   messageInput.value = "";
 };
 
+let initialLoadTimeout = setTimeout(() => {
+  if (!firstMessageLoaded) {
+    chatLoading.style.opacity = 0;
+    chatBox.classList.add("loaded");
+    setTimeout(() => {
+      chatLoading.style.display = "none";
+    }, 500);
+  }
+}, 1500);
+
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
-  if (!m || !m.uid) return;
 
-  const render = (profile) => {
+  // Check cache first
+  if (profileCache[m.uid]) {
     addMessage(
-      profile?.username || "PLAYER",
+      profileCache[m.uid].username || "PLAYER",
       m.text,
-      profile?.pfp || "https://via.placeholder.com/36",
+      profileCache[m.uid].pfp || "https://via.placeholder.com/36",
       new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
       snap.key,
-      profile
+      profileCache[m.uid]
     );
-
-    if (!windowFocused) {
-      unreadCount++;
-      document.title = `(${unreadCount}) ${originalTitle}`;
-    }
-  };
-
-  // ✅ USE CACHE FIRST
-  if (profileCache[m.uid]) {
-    render(profileCache[m.uid]);
   } else {
+    // Fetch full profile from database
     const profileRef = ref(db, "profiles/" + m.uid);
+    onValue(profileRef, snapProfile => {
+      const profileData = snapProfile.val() || {
+        username: m.username || "PLAYER",
+        pfp: m.pfp || "https://via.placeholder.com/36"
+      };
+      profileCache[m.uid] = profileData; // cache it
 
-    onValue(profileRef, (profileSnap) => {
-      const profile = profileSnap.val();
-
-      if (profile) {
-        profileCache[m.uid] = profile;
-        render(profile);
-      } else {
-        render(null);
-      }
+      addMessage(
+        profileData.username,
+        m.text,
+        profileData.pfp,
+        new Date(m.ts).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}),
+        snap.key,
+        profileData
+      );
     }, { onlyOnce: true });
   }
-});
 
-onChildRemoved(ref(db,"messages"), snap => {
-  const key = snap.key;
-  const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
-  if (msgElem) {
-    msgElem.remove(); // Remove it from the DOM on all clients
+  if(!windowFocused){
+    unreadCount++;
+    document.title = `(${unreadCount}) ${originalTitle}`;
   }
 });
 
@@ -906,7 +888,7 @@ document.getElementById("setUsernameBtn").onclick = () => {
 
 document.getElementById("setDisplayNameBtn").onclick = () => {
   const val = document.getElementById("displayNameInput").value.trim();
-  localStorage.setItem("displayName", val);
+  updateProfileField("displayName", val);
   alert("Display name updated.");
 };
 
@@ -929,7 +911,7 @@ document.getElementById("setPfpBtn").onclick = () => {
   const reader = new FileReader();
   reader.onload = e => {
     userPFP = e.target.result;
-    localStorage.setItem("pfp", userPFP);
+    updateProfileField("pfp", userPFP);
     alert("Profile picture updated.");
   };
   reader.readAsDataURL(file);
@@ -965,10 +947,6 @@ document.getElementById("setCardBgBtn").onclick = () => {
 
   showStatusPopup("Profile background updated!");
 };
-
-document.getElementById("setColorBtn").onclick = () => {
-  const val = document.getElementById("colorPicker").value;
-  localStorage.setItem("profileColor", val);
 
   // Update the profile card border if modal is open
   const profileCard = document.querySelector(".profile-card");
@@ -1103,8 +1081,8 @@ document.getElementById("setSocialsBtn").onclick = () => {
 async function openProfile(data){
   if(!data) return;
 
-document.getElementById("profileAvatar").src = data.pfp || "https://via.placeholder.com/80";
-const bannerDiv = document.querySelector(".profile-banner");
+  document.getElementById("profileAvatar").src = data.img;
+  const bannerDiv = document.querySelector(".profile-banner");
 
 if (data.banner) {
   bannerDiv.style.background = `url(${data.banner}) center/cover`;
@@ -1468,6 +1446,7 @@ const password = document.getElementById("loginPassword").value;
 
 try{
 await signInWithEmailAndPassword(auth,email,password);
+saveProfileToAccount();
 loginFeedback.textContent="logged in!";
 loginFeedback.style.color="lightgreen";
 }catch(err){
@@ -1494,11 +1473,11 @@ loginFeedback.style.color="red";
 };
 
 onAuthStateChanged(auth,(user)=>{
-if(user){
-loginScreen.style.display="none";
-}else{
-loginScreen.style.display="flex";
-}
+  if(user){
+    loginScreen.style.display="none";
+  }else{
+    loginScreen.style.display="flex";
+  }
 });
 
 const authStatus=document.getElementById("authStatus");
@@ -1510,6 +1489,7 @@ const pass=document.getElementById("authPassword").value;
 
 try{
 await signInWithEmailAndPassword(auth,email,pass);
+saveProfileToAccount();
 showStatusPopup("Logged in!");
 }catch(err){
 showStatusPopup(err.message,3000);
@@ -1550,31 +1530,6 @@ authStatus.textContent="Not logged in";
 });
 
 function migrateLocalProfile(){
-  if(!auth.currentUser) return;
-
-  const profile = {
-    username: localStorage.getItem("username"),
-    displayName: localStorage.getItem("displayName"),
-    pronouns: localStorage.getItem("pronouns"),
-    bio: localStorage.getItem("bio"),
-    status: localStorage.getItem("status"),
-    pfp: localStorage.getItem("pfp"),        // ✅ FIXED
-    banner: localStorage.getItem("banner"),  // ✅ FIXED
-    profileColor: localStorage.getItem("profileColor"),
-    profileCardBg: localStorage.getItem("profileCardBg"),
-    lastFmUser: localStorage.getItem("lastFmUser"),
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-    joinDate: localStorage.getItem("joinDate"),
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-    favoriteSong: localStorage.getItem("favoriteSong")
-  };
-
-  set(ref(db,"profiles/"+auth.currentUser.uid), profile);
-
-  showStatusPopup("Profile synced to account!");
-}
-
-function saveProfileToAccount(){
 
 if(!auth.currentUser) return;
 
@@ -1588,40 +1543,69 @@ pfp:localStorage.getItem("pfp"),
 banner:localStorage.getItem("banner"),
 profileColor:localStorage.getItem("profileColor"),
 profileCardBg:localStorage.getItem("profileCardBg"),
-lastFmUser:localStorage.getItem("lastFmUser"),
-badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-joinDate: localStorage.getItem("joinDate"),
-socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-favoriteSong: localStorage.getItem("favoriteSong")
+lastFmUser:localStorage.getItem("lastFmUser")
 };
 
 const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
 
 set(profileRef,profile);
 
+showStatusPopup("Profile saved to account!");
+
 }
 
-onAuthStateChanged(auth,(user)=>{
+function updateProfileField(key, value) {
+  localStorage.setItem(key, value);
+  saveProfileToAccount();
+}
 
-if(!user) return;
+function saveProfileToAccount() {
 
-const profileRef=ref(db,"profiles/"+user.uid);
+  if (!auth.currentUser) return;
+  
+  const profileRef = ref(db, "profiles/" + auth.currentUser.uid);
+  
+  set(profileRef, {
+    username: localStorage.getItem("username") || "PLAYER",
+    displayName: localStorage.getItem("displayName") || "",
+    pronouns: localStorage.getItem("pronouns") || "",
+    bio: localStorage.getItem("bio") || "",
+    status: localStorage.getItem("status") || "",
+    banner: localStorage.getItem("banner") || "",
+    profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+    profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
+    pfp: localStorage.getItem("pfp") || "",
+    lastFmUser: localStorage.getItem("lastFmUser") || "",
+    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+    joinDate: localStorage.getItem("joinDate") || "",
+    favoriteSong: localStorage.getItem("favoriteSong") || "",
+    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+  });
+}
 
-onValue(profileRef,(snap)=>{
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
 
-if(!snap.exists()) return;
+  const profileRef = ref(db, "profiles/" + user.uid);
 
-const data=snap.val();
+  onValue(profileRef, (snap) => {
+    if (!snap.exists()) return;
 
-Object.keys(data).forEach(k=>{
-if(data[k]) localStorage.setItem(k,data[k]);
-});
+    const data = snap.val();
 
-username=data.username||username;
-userPFP=data.pfp||userPFP;
+    // Load EVERYTHING into localStorage
+    Object.keys(data).forEach(k => {
+      if (data[k] !== undefined && data[k] !== null) {
+        localStorage.setItem(k, typeof data[k] === "object"
+          ? JSON.stringify(data[k])
+          : data[k]);
+      }
+    });
 
-});
+    username = data.username || "PLAYER";
+    userPFP = data.pfp || "https://via.placeholder.com/36";
 
+  }, { onlyOnce: true }); // 🔥 IMPORTANT
 });
 
 window.addEventListener("load",()=>{
@@ -1639,29 +1623,25 @@ alert("Hey! wolfchat is adding accounts.\n\nPlease sign up with an email + passw
 
 /* EMOJI PICKER */
 
-window.addEventListener("DOMContentLoaded", () => {
+const emojiBtn = document.getElementById("emojiBtn");
+const emojiPickerContainer = document.getElementById("emojiPicker");
 
-  const emojiBtn = document.getElementById("emojiBtn");
-  const emojiPickerContainer = document.getElementById("emojiPicker");
-
-  const picker = new EmojiMart.Picker({
-    theme: "dark",
-    previewPosition: "none",
-    onEmojiSelect: (emoji) => {
-      messageInput.value += emoji.native;
-    }
-  });
-
-  emojiPickerContainer.appendChild(picker);
-
-  emojiBtn.onclick = () => {
-    emojiPickerContainer.style.display =
-      emojiPickerContainer.style.display === "block"
-        ? "none"
-        : "block";
-  };
-
+const picker = new EmojiMart.Picker({
+  theme: "dark",
+  previewPosition: "none",
+  onEmojiSelect: (emoji) => {
+    messageInput.value += emoji.native;
+  }
 });
+
+emojiPickerContainer.appendChild(picker);
+
+emojiBtn.onclick = () => {
+  emojiPickerContainer.style.display =
+    emojiPickerContainer.style.display === "block"
+      ? "none"
+      : "block";
+};
 
 </script>
 
