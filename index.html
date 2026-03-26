@@ -948,25 +948,31 @@ document.getElementById("setColorBtn").onclick = () => {
 document.getElementById("setCardBgBtn").onclick = () => {
   const color = document.getElementById("cardBgColorPicker").value;
 
+  // Save to localStorage
   localStorage.setItem("profileCardBg", color);
 
+  // Update profile card background immediately
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
     profileCard.style.background = color;
   }
+
   saveProfileToAccount();
   showStatusPopup("Profile background updated!");
 };
 
 document.getElementById("setColorBtn").onclick = () => {
-  const val = document.getElementById("colorPicker").value;
-  localStorage.setItem("profileColor", val);
+  const color = document.getElementById("colorPicker").value;
 
-  // Update the profile card border if modal is open
+  // Save to localStorage
+  localStorage.setItem("profileColor", color);
+
+  // Update profile card border immediately
   const profileCard = document.querySelector(".profile-card");
-  if(profileCard){
-    profileCard.style.borderColor = val;
+  if (profileCard) {
+    profileCard.style.borderColor = color;
   }
+
   saveProfileToAccount();
   showStatusPopup("Profile color updated!");
 };
@@ -1566,33 +1572,39 @@ function migrateLocalProfile(){
   showStatusPopup("Profile synced to account!");
 }
 
-function saveProfileToAccount(){
+function saveProfileToAccount() {
+  if (!auth.currentUser) return;
 
-if(!auth.currentUser) return;
+  const uid = auth.currentUser.uid;
 
-const profile={
-username:localStorage.getItem("username"),
-displayName:localStorage.getItem("displayName"),
-pronouns:localStorage.getItem("pronouns"),
-bio:localStorage.getItem("bio"),
-status:localStorage.getItem("status"),
-pfp:localStorage.getItem("pfp"),
-banner:localStorage.getItem("banner"),
-profileColor:localStorage.getItem("profileColor"),
-profileCardBg:localStorage.getItem("profileCardBg"),
-lastFmUser:localStorage.getItem("lastFmUser"),
-badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-joinDate: localStorage.getItem("joinDate"),
-socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-favoriteSong: localStorage.getItem("favoriteSong")
-};
+  // Gather all profile data
+  const profileData = {
+    username: document.getElementById("usernameInput").value.trim(),
+    displayName: document.getElementById("displayNameInput").value.trim(),
+    pronouns: document.getElementById("pronounsInput").value.trim(),
+    bio: document.getElementById("bioInput").value.trim(),
+    status: document.getElementById("statusInput").value.trim(),
+    banner: localStorage.getItem("banner") || "",
+    profileColor: document.getElementById("colorPicker").value || "#1e3a8a",
+    profileCardBg: document.getElementById("cardBgColorPicker").value || "#111111",
+    pfp: localStorage.getItem("pfp") || "",
+    lastFmUser: document.getElementById("lastFmUsername").value.trim(),
+    joinDate: document.getElementById("joinDateInput")?.value || "",
+    badges: document.getElementById("badgesInput")?.value.split(",").map(b=>b.trim()) || [],
+    favoriteSong: document.getElementById("favoriteSongInput")?.value || "",
+    website: document.getElementById("websiteInput")?.value || "",
+    github: document.getElementById("githubInput")?.value || ""
+  };
 
-const profileRef=ref(db,"profiles/"+auth.currentUser.uid);
-
-set(profileRef,profile);
-
+  // Save to Firebase once
+  set(ref(db, `profiles/${uid}`), profileData)
+    .then(() => {
+      console.log("Profile saved to account.");
+    })
+    .catch(err => {
+      console.error("Failed to save profile:", err);
+    });
 }
-
 onAuthStateChanged(auth,(user)=>{
 
 if(!user) return;
