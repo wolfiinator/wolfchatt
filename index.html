@@ -797,6 +797,8 @@ window.sendMessage = async () => {
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
   if (!m || !m.uid) return;
+  if (!profile.username) profile.username = "PLAYER";
+  if (!profile.pfp) profile.pfp = "https://via.placeholder.com/36";
 
   const render = (profile) => {
     addMessage(
@@ -1577,24 +1579,16 @@ function saveProfileToAccount() {
 
   const uid = auth.currentUser.uid;
 
-  // Gather all profile data
-  const profileData = {
-    username: document.getElementById("usernameInput").value.trim(),
-    displayName: document.getElementById("displayNameInput").value.trim(),
-    pronouns: document.getElementById("pronounsInput").value.trim(),
-    bio: document.getElementById("bioInput").value.trim(),
-    status: document.getElementById("statusInput").value.trim(),
-    banner: localStorage.getItem("banner") || "",
-    profileColor: document.getElementById("colorPicker").value || "#1e3a8a",
-    profileCardBg: document.getElementById("cardBgColorPicker").value || "#111111",
-    pfp: localStorage.getItem("pfp") || "",
-    lastFmUser: document.getElementById("lastFmUsername").value.trim(),
-    joinDate: document.getElementById("joinDateInput")?.value || "",
-    badges: document.getElementById("badgesInput")?.value.split(",").map(b=>b.trim()) || [],
-    favoriteSong: document.getElementById("favoriteSongInput")?.value || "",
-    website: document.getElementById("websiteInput")?.value || "",
-    github: document.getElementById("githubInput")?.value || ""
-  };
+  const profileData = getProfileLayout(); // use one source
+
+  set(ref(db, `profiles/${uid}`), profileData)
+    .then(() => {
+      console.log("Profile saved to account.");
+    })
+    .catch(err => {
+      console.error("Failed to save profile:", err);
+    });
+}
 
   // Save to Firebase once
   set(ref(db, `profiles/${uid}`), profileData)
@@ -1612,21 +1606,21 @@ if(!user) return;
 const profileRef=ref(db,"profiles/"+user.uid);
 
 onValue(profileRef,(snap)=>{
+  if(!snap.exists()) return;
 
-if(!snap.exists()) return;
+  const data = snap.val();
 
-const data=snap.val();
-
-Object.keys(data).forEach(k => {
-  if (data[k] !== undefined && data[k] !== null) {
-    if (typeof data[k] === "object") {
-      localStorage.setItem(k, JSON.stringify(data[k]));
-    } else {
-      localStorage.setItem(k, data[k]);
+  Object.keys(data).forEach(k => {
+    if (data[k] !== undefined && data[k] !== null) {
+      if (typeof data[k] === "object") {
+        localStorage.setItem(k, JSON.stringify(data[k]));
+      } else {
+        localStorage.setItem(k, data[k]);
+      }
     }
-  }
-});
+  });
 
+  hydrateProfileFields(getProfileLayout());
 });
 
 window.addEventListener("load",()=>{
