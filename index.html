@@ -1590,15 +1590,7 @@ function saveProfileToAccount() {
     });
 }
 
-  // Save to Firebase once
-  set(ref(db, `profiles/${uid}`), profileData)
-    .then(() => {
-      console.log("Profile saved to account.");
-    })
-    .catch(err => {
-      console.error("Failed to save profile:", err);
-    });
-}
+
 onAuthStateChanged(auth,(user)=>{
 
 if(!user) return;
