@@ -797,8 +797,6 @@ window.sendMessage = async () => {
 onChildAdded(messagesQuery, snap => {
   const m = snap.val();
   if (!m || !m.uid) return;
-  if (!profile.username) profile.username = "PLAYER";
-  if (!profile.pfp) profile.pfp = "https://via.placeholder.com/36";
 
   const render = (profile) => {
     addMessage(
