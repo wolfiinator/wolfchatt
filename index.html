@@ -813,58 +813,26 @@ window.sendMessage = async () => {
   });
 };
 
-onChildAdded(messagesQuery, snap => {
-  console.log("Message received:", snap.val());
-
-  const m = snap.val();
-  if (!m || !m.uid) return;
-
-  const time = new Date(m.ts).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-
-  // 🚀 1. ALWAYS render immediately (no waiting)
-  addMessage(
-    "PLAYER",
-    m.text,
-    "https://via.placeholder.com/36",
-    time,
-    snap.key,
-    {}
-  );
-
-  // 🔔 unread counter
-  if (!windowFocused) {
-    unreadCount++;
-    document.title = `(${unreadCount}) ${originalTitle}`;
+window.sendMessage = async () => {
+  if (!auth.currentUser) {
+    showStatusPopup("You must be logged in to send messages.", 2000);
+    return;
   }
 
-  // 🚀 2. If we already have profile, skip fetch
-  if (profileCache[m.uid]) return;
+  const text = messageInput.value.trim();
+  if (!text) return;
+  messageInput.value = "";
 
-  // 🚀 3. Fetch profile in background
-  const profileRef = ref(db, "profiles/" + m.uid);
+  const profile = await getProfileFromAccount(auth.currentUser.uid);
 
-  onValue(profileRef, (profileSnap) => {
-    const profile = profileSnap.val();
-    if (!profile) return;
-
-    profileCache[m.uid] = profile;
-
-    // ⚡ OPTIONAL: update message AFTER render (advanced)
-    // (skip this if you just want it working)
-    const msgElem = chatBox.querySelector(`.message[data-key="${snap.key}"]`);
-    if (!msgElem) return;
-
-    const nameElem = msgElem.querySelector(".name");
-    const imgElem = msgElem.querySelector("img");
-
-    if (nameElem) nameElem.textContent = profile.username || "PLAYER";
-    if (imgElem) imgElem.src = profile.pfp || "https://via.placeholder.com/36";
-
-  }, { onlyOnce: true });
-});
+  push(messagesRootRef, {
+    uid: auth.currentUser.uid,
+    text,
+    ts: Date.now(),
+    username: profile.username || "PLAYER",
+    pfp: profile.pfp || "https://via.placeholder.com/36"
+  });
+};
 
 onChildRemoved(ref(db,"messages"), snap => {
   const key = snap.key;
