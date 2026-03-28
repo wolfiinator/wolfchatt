@@ -660,6 +660,15 @@ const firebaseConfig = {
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth = getAuth(app);
+
+import { get, ref as dbRef } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+get(dbRef(db, "messages")).then(snap => {
+  console.log("TEST READ:", snap.exists(), snap.val());
+}).catch(err => {
+  console.error("READ FAILED:", err);
+});
+
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
 
@@ -771,6 +780,16 @@ setTimeout(()=>{ chatLoading.style.display="none"; },500);
 }
 }
 
+setTimeout(() => {
+  if (!firstMessageLoaded) {
+    chatLoading.style.opacity = 0;
+    chatBox.classList.add("loaded");
+    setTimeout(() => {
+      chatLoading.style.display = "none";
+    }, 500);
+  }
+}, 1500);
+
 window.sendMessage = async () => {
   if (!auth.currentUser) {
     showStatusPopup("You must be logged in to send messages.", 2000);
@@ -795,6 +814,7 @@ window.sendMessage = async () => {
 };
 
 onChildAdded(messagesQuery, snap => {
+  console.log("Message received:", snap.val());
   const m = snap.val();
   if (!m || !m.uid) return;
 
