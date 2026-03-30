@@ -672,6 +672,39 @@ get(dbRef(db, "messages")).then(snap => {
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
 
+onChildAdded(messagesQuery, async (snap) => {
+  const msg = snap.val();
+  const key = snap.key;
+
+  if (renderedMessages.has(key)) return;
+  renderedMessages.add(key);
+
+  // If message already contains profile info
+  if (msg.username && msg.pfp) {
+    addMessage(
+      msg.username,
+      msg.text,
+      msg.pfp,
+      new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      key,
+      msg
+    );
+  } else {
+    // fallback: fetch profile from database
+    const profileSnap = await get(ref(db, "profiles/" + msg.uid));
+    const profile = profileSnap.exists() ? profileSnap.val() : {};
+
+    addMessage(
+      profile.username || "PLAYER",
+      msg.text,
+      profile.pfp || "https://via.placeholder.com/36",
+      new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      key,
+      profile
+    );
+  }
+});
+
 /* Connection Indicator */
 const connectionIndicator = document.getElementById("connectionIndicator");
 function updateConnectionStatus() {
