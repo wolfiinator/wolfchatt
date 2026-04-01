@@ -767,7 +767,7 @@ function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",min
 
 function addMessage(name,text,img,time,key,data){
 const m=document.createElement("div");
-const side=name===username?"user":"other";
+const side = data.uid === auth.currentUser?.uid ? "user" : "other";
 m.className=`message ${side}`;
 m.dataset.key=key;
 let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
@@ -824,6 +824,20 @@ setTimeout(() => {
   }
 }, 1500);
 
+async function getProfileFromAccount(uid) {
+  try {
+    const snap = await get(ref(db, "profiles/" + uid));
+    if (snap.exists()) {
+      return snap.val();
+    } else {
+      return {};
+    }
+  } catch (e) {
+    console.error("Profile fetch failed:", e);
+    return {};
+  }
+}
+
 window.sendMessage = async () => {
   if (!auth.currentUser) {
     showStatusPopup("You must be logged in to send messages.", 2000);
@@ -832,22 +846,29 @@ window.sendMessage = async () => {
 
   const text = messageInput.value.trim();
   if (!text) return;
+
   messageInput.value = "";
 
-  // message count
-  const currentCount = parseInt(localStorage.getItem("messageCount") || "0") + 1;
-  localStorage.setItem("messageCount", currentCount);
-  set(ref(db, "profiles/" + auth.currentUser.uid + "/messageCount"), currentCount);
+  const uid = auth.currentUser.uid;
 
-  // get profile
-  const profile = await getProfileFromAccount(auth.currentUser.uid);
+  const profile = await getProfileFromAccount(uid);
+
+  const finalUsername =
+    profile.username ||
+    localStorage.getItem("username") ||
+    "PLAYER";
+
+  const finalPfp =
+    profile.pfp ||
+    localStorage.getItem("pfp") ||
+    "https://via.placeholder.com/36";
 
   push(messagesRootRef, {
-    uid: auth.currentUser.uid,
+    uid,
     text,
     ts: Date.now(),
-    username: profile.username || "PLAYER",
-    pfp: profile.pfp || "https://via.placeholder.com/36"
+    username: finalUsername,
+    pfp: finalPfp
   });
 };
 
