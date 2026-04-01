@@ -712,6 +712,7 @@ onChildAdded(messagesQuery, async (snap) => {
 
   let username = msg.username;
   let pfp = msg.pfp;
+  // Keep one canonical fallback object here (avoids future merge-conflict duplication).
   let extraData = {
     uid: msg.uid,
     profileUrl: msg.profileUrl || null,
