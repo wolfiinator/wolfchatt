@@ -669,6 +669,8 @@ get(dbRef(db, "messages")).then(snap => {
   console.error("READ FAILED:", err);
 });
 
+const renderedMessages = new Set();
+
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
 
@@ -742,7 +744,6 @@ let isOwner=false;
 let firstMessageLoaded=false;
 
 const profileCache = {};
-const renderedMessages = new Set();
 let lastNowPlaying = null; // tracks last track sent to chat
 
 // --- PAGE TITLE NOTIFICATIONS ---
@@ -829,33 +830,16 @@ window.sendMessage = async () => {
     return;
   }
 
-  if (!messageInput.value.trim()) return;
-
-  const text = messageInput.value.trim();
-  messageInput.value = "";
-
-  const currentCount = parseInt(localStorage.getItem("messageCount") || "0") + 1;
-  localStorage.setItem("messageCount", currentCount);
-
-  set(ref(db, "profiles/" + auth.currentUser.uid + "/messageCount"), currentCount);
-
-  push(messagesRootRef, {
-    uid: auth.currentUser.uid,
-    text: text,
-    ts: Date.now()
-  });
-};
-
-window.sendMessage = async () => {
-  if (!auth.currentUser) {
-    showStatusPopup("You must be logged in to send messages.", 2000);
-    return;
-  }
-
   const text = messageInput.value.trim();
   if (!text) return;
   messageInput.value = "";
 
+  // message count
+  const currentCount = parseInt(localStorage.getItem("messageCount") || "0") + 1;
+  localStorage.setItem("messageCount", currentCount);
+  set(ref(db, "profiles/" + auth.currentUser.uid + "/messageCount"), currentCount);
+
+  // get profile
   const profile = await getProfileFromAccount(auth.currentUser.uid);
 
   push(messagesRootRef, {
