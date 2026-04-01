@@ -674,41 +674,38 @@ const renderedMessages = new Set();
 const messagesRootRef = ref(db, "messages");
 const messagesQuery = query(messagesRootRef, limitToLast(50));
 
-onChildAdded(messagesQuery, async (snap) => {
-  const msg = snap.val();
-  const key = snap.key;
+async function loadMessages() {
+  const binUrl = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`;
 
-  if (renderedMessages.has(key)) return;
-  renderedMessages.add(key);
-
-  let username = msg.username;
-  let pfp = msg.pfp;
-  let extraData = msg;
-
-  if (!username || !pfp) {
-    try {
-      const profileSnap = await get(ref(db, "profiles/" + msg.uid));
-      const profile = profileSnap.exists() ? profileSnap.val() : {};
-      username = profile.username || username || "PLAYER";
-      pfp = profile.pfp || pfp || "https://via.placeholder.com/36";
-      extraData = { ...profile, uid: msg.uid, name: username };
-    } catch (e) {
-      console.error("Profile fetch failed:", e);
-      username = username || "PLAYER";
-      pfp = pfp || "https://via.placeholder.com/36";
-      extraData = { uid: msg.uid, name: username };
+  const data = await fetch(binUrl, {
+    headers: {
+      "X-Master-Key": JSONBIN_MASTER_KEY
     }
-  }
+  }).then(res => res.json());
 
-  addMessage(
-    username,
-    msg.text,
-    pfp,
-    new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    key,
-    extraData
-  );
-});
+  const messages = data.record || [];
+
+  chatBox.innerHTML = "";
+
+  messages.forEach((msg, index) => {
+    addMessage(
+      msg.username,
+      msg.text,
+      msg.pfp,
+      new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      "msg-" + index,
+      msg
+    );
+  });
+
+  chatBox.classList.add("loaded");
+  chatLoading.style.display = "none";
+}
+
+loadMessages();
+
+// poll every 3 seconds
+setInterval(loadMessages, 3000);
 
 /* Connection Indicator */
 const connectionIndicator = document.getElementById("connectionIndicator");
@@ -844,6 +841,9 @@ async function getProfileFromAccount(uid) {
   }
 }
 
+const JSONBIN_BIN_ID = "69cd7eceaaba882197b6fbe6";
+const JSONBIN_MASTER_KEY = "$2a$10$OetCD5JuOC4P0m/WRiZg3uKPnpqGstZSoriAkVVuVsmLfhkIHuG4a";
+
 window.sendMessage = async () => {
   if (!auth.currentUser) {
     showStatusPopup("You must be logged in to send messages.", 2000);
@@ -852,30 +852,52 @@ window.sendMessage = async () => {
 
   const text = messageInput.value.trim();
   if (!text) return;
-
   messageInput.value = "";
 
   const uid = auth.currentUser.uid;
-
   const profile = await getProfileFromAccount(uid);
 
-  const finalUsername =
-    profile.username ||
-    localStorage.getItem("username") ||
-    "PLAYER";
-
-  const finalPfp =
-    profile.pfp ||
-    localStorage.getItem("pfp") ||
-    "https://via.placeholder.com/36";
-
-  push(messagesRootRef, {
+  const messageData = {
     uid,
     text,
     ts: Date.now(),
-    username: finalUsername,
-    pfp: finalPfp
+    username: profile.username || localStorage.getItem("username") || "PLAYER",
+    pfp: profile.pfp || localStorage.getItem("pfp") || "https://via.placeholder.com/36"
+  };
+
+  const binUrl = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
+
+  // Get existing messages
+  const existing = await fetch(binUrl, {
+    headers: {
+      "X-Master-Key": JSONBIN_MASTER_KEY
+    }
+  }).then(res => res.json());
+
+  const messages = existing.record || [];
+
+  // Add new message
+  messages.push(messageData);
+
+  // Save updated messages
+  await fetch(binUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Master-Key": JSONBIN_MASTER_KEY
+    },
+    body: JSON.stringify(messages)
   });
+
+  // Render instantly (no delay)
+  addMessage(
+    messageData.username,
+    messageData.text,
+    messageData.pfp,
+    new Date(messageData.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    "local-" + Date.now(),
+    messageData
+  );
 };
 
 onChildRemoved(ref(db,"messages"), snap => {
