@@ -722,6 +722,7 @@ onChildAdded(messagesQuery, async (snap) => {
     pfp: pfp || "https://via.placeholder.com/36",
     status: msg.status || ""
   };
+  let extraData = { uid: msg.uid, name: username || "PLAYER" };
 
   try {
     let profile = null;
@@ -742,12 +743,18 @@ onChildAdded(messagesQuery, async (snap) => {
       username = username || "PLAYER";
       pfp = pfp || "https://via.placeholder.com/36";
       extraData = { ...extraData, uid: msg.uid, name: username, pfp };
+      extraData = { ...profile, uid: msg.uid, name: username };
+    } else {
+      username = username || "PLAYER";
+      pfp = pfp || "https://via.placeholder.com/36";
+      extraData = { uid: msg.uid, name: username };
     }
   } catch (e) {
     console.error("Profile fetch failed:", e);
     username = username || "PLAYER";
     pfp = pfp || "https://via.placeholder.com/36";
     extraData = { ...extraData, uid: msg.uid, name: username, pfp };
+    extraData = { uid: msg.uid, name: username };
   }
 
   addMessage(
@@ -799,6 +806,11 @@ let firstMessageLoaded=false;
 const profileCache = {};
 let lastNowPlaying = null; // tracks last track sent to chat
 
+function shouldAutoScroll() {
+  const threshold = 80;
+  return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
+}
+
 async function fetchProfileByUrl(profileUrl) {
   if (!profileUrl) return null;
   if (profileCache[profileUrl]) return profileCache[profileUrl];
@@ -812,6 +824,15 @@ async function fetchProfileByUrl(profileUrl) {
         headers: { "X-Access-Key": jsonBinKey }
       });
     }
+  const jsonBinKey = getJsonBinAccessKey();
+  if (!jsonBinKey) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(profileUrl, {
+      headers: { "X-Access-Key": jsonBinKey }
+    });
     if (!res.ok) return null;
     const payload = await res.json();
     const profile = payload.record || null;
@@ -892,6 +913,7 @@ messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ 
 function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
 
 function addMessage(name,text,img,time,key,data){
+const stickToBottom = shouldAutoScroll();
 const m=document.createElement("div");
 const side = (auth.currentUser && data.uid === auth.currentUser.uid)
   ? "user"
@@ -934,6 +956,9 @@ bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
 });
 
 chatBox.scrollTop = chatBox.scrollHeight;
+if (stickToBottom) {
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 
 if(!firstMessageLoaded){
 firstMessageLoaded=true;
@@ -974,6 +999,11 @@ async function getProfileFromAccount(uid) {
         if (fromJsonBin) return { ...fallbackProfile, ...fromJsonBin, profileUrl: profileRefData.profileUrl };
       }
       return { ...profileRefData, ...fallbackProfile };
+      if (profileRefData?.profileUrl) {
+        const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
+        if (fromJsonBin) return fromJsonBin;
+      }
+      return profileRefData;
     } else {
       return {};
     }
