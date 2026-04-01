@@ -702,7 +702,7 @@ onChildAdded(messagesQuery, async (snap) => {
       profile.pfp || "https://via.placeholder.com/36",
       new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       key,
-      profile
+      { ...profile, uid: msg.uid }
     );
   }
 });
@@ -767,8 +767,10 @@ function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",min
 
 function addMessage(name,text,img,time,key,data){
 const m=document.createElement("div");
-const side = data.uid === auth.currentUser?.uid ? "user" : "other";
-m.className=`message ${side}`;
+const side = (auth.currentUser && data.uid === auth.currentUser.uid)
+  ? "user"
+  : "other";
+  m.className=`message ${side}`;
 m.dataset.key=key;
 let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
 let bubbleHTML = `
