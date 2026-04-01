@@ -80,7 +80,9 @@ margin-bottom: 10px;
   min-height: 0;
   padding: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   opacity: 0;
   transition: opacity 0.5s ease;
@@ -129,6 +131,19 @@ transition: background 0.3s ease;
 
 /* SETTINGS */
 .settings-btn { position: fixed; top: 12px; right: 12px; background: #020617; border: 2px solid #1e3a8a; color: #bfdbfe; font-family: inherit; padding: 6px 10px; cursor: pointer; z-index: 1001; }
+.digital-clock {
+position: fixed;
+top: 10px;
+left: 12px;
+padding: 6px 8px;
+font-size: 11px;
+color: #bfdbfe;
+background: rgba(2, 6, 23, 0.92);
+border: 2px solid #1e3a8a;
+border-radius: 4px;
+z-index: 3500;
+pointer-events: none;
+}
 .settings-panel { position: fixed; top: 0; right: -400px; width: 400px; height: 100%; background: #020617; border-left: 2px solid #1e3a8a; padding: 14px; transition: right 0.35s ease; z-index: 1000; font-family: inherit; display: flex; flex-direction: column; overflow-y: auto; }
 .settings-panel.open { right: 0; }
 .settings-tabs { display: flex; gap: 6px; margin-bottom: 12px; }
@@ -412,6 +427,7 @@ transform:scale(1.15);
   <div class="intro-glitch"></div>
 </div>
 
+<div id="digitalClock" class="digital-clock">--:--:--</div>
 <button class="settings-btn" onclick="toggleSettings()">⚙</button>
 
 <div class="settings-panel" id="settingsPanel">
@@ -538,7 +554,7 @@ Not connected.
     fixed storage (u)<br>
     fixed lagging (u)<br>
     fixed profiles being "undefined" (u)<br>
-    
+
     <br><br>
     typing animations (a)<br>
     more profile configs (a)<br>
@@ -712,17 +728,17 @@ onChildAdded(messagesQuery, async (snap) => {
 
     if (profile) {
       username = profile.username || username || "PLAYER";
-      pfp = profile.pfp || pfp || "https://via.placeholder.com/36";
+      pfp = profile.pfp || pfp || "https://via.placeholder.com/80";
       extraData = { ...profile, uid: msg.uid, name: username };
     } else {
       username = username || "PLAYER";
-      pfp = pfp || "https://via.placeholder.com/36";
+      pfp = pfp || "https://via.placeholder.com/80";
       extraData = { uid: msg.uid, name: username };
     }
   } catch (e) {
     console.error("Profile fetch failed:", e);
     username = username || "PLAYER";
-    pfp = pfp || "https://via.placeholder.com/36";
+    pfp = pfp || "https://via.placeholder.com/80";
     extraData = { uid: msg.uid, name: username };
   }
 
@@ -854,10 +870,26 @@ window.addEventListener("focus", () => {
 window.addEventListener("blur", () => {
   windowFocused = false;
 });
-  
+
+function startDigitalClock() {
+  const clock = document.getElementById("digitalClock");
+  if (!clock) return;
+  const tick = () => {
+    clock.textContent = new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+startDigitalClock();
+
 messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMessage(); } });
 
 function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
+function getFallbackPfp() { return "https://via.placeholder.com/80"; }
 
 function addMessage(name,text,img,time,key,data){
 const stickToBottom = shouldAutoScroll();
@@ -903,7 +935,12 @@ bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
 });
 
 if (stickToBottom) {
-  chatBox.scrollTop = chatBox.scrollHeight;
+  requestAnimationFrame(() => {
+    chatBox.scrollTop = chatBox.scrollHeight;
+    requestAnimationFrame(() => {
+      chatBox.scrollTop = chatBox.scrollHeight;
+    });
+  });
 }
 
 if(!firstMessageLoaded){
@@ -931,7 +968,7 @@ async function getProfileFromAccount(uid) {
       const profileRefData = snap.val();
       if (profileRefData?.profileUrl) {
         const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
-        if (fromJsonBin) return fromJsonBin;
+        if (fromJsonBin) return { ...profileRefData, ...fromJsonBin };
       }
       return profileRefData;
     } else {
@@ -966,7 +1003,7 @@ window.sendMessage = async () => {
   const finalPfp =
     profile.pfp ||
     localStorage.getItem("pfp") ||
-    "https://via.placeholder.com/36";
+    "https://via.placeholder.com/80";
 
   const profileUrl =
     profile.profileUrl ||
@@ -1199,7 +1236,7 @@ document.getElementById("importLayoutBtn").onclick = () => {
       });
 
       username = localStorage.getItem("username") || "PLAYER";
-      userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/36";
+      userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/80";
 
       hydrateProfileFields(getProfileLayout());
       updateLastFmPresence();
@@ -1260,8 +1297,9 @@ document.getElementById("setSocialsBtn").onclick = () => {
 
 async function openProfile(data){
   if(!data) return;
+const resolvedUsername = data.username || data.name || "PLAYER";
 
-document.getElementById("profileAvatar").src = data.pfp || "https://via.placeholder.com/80";
+document.getElementById("profileAvatar").src = data.pfp || getFallbackPfp();
 const bannerDiv = document.querySelector(".profile-banner");
 
 if (data.banner) {
@@ -1269,8 +1307,8 @@ if (data.banner) {
 } else {
   bannerDiv.style.background = "linear-gradient(135deg,#1e3a8a,#2563eb)";
 }
-  document.getElementById("profileDisplayName").textContent = data.displayName || data.name;
-  document.getElementById("profileUsername").textContent = "@" + data.name;
+  document.getElementById("profileDisplayName").textContent = data.displayName || resolvedUsername;
+  document.getElementById("profileUsername").textContent = "@" + resolvedUsername;
   document.getElementById("profilePronouns").textContent = data.pronouns || "";
   document.getElementById("profileStatus").textContent = data.status || "";
   document.getElementById("profileBio").textContent = data.bio || "No bio set.";
@@ -1362,7 +1400,7 @@ function showStatusPopup(message, duration=1500) {
     activePopup = popup;
 
     popup.style.position = "fixed";
-    popup.style.top = "20px";
+    popup.style.top = "56px";
     popup.style.left = "20px";
     popup.style.background = "#020617";
     popup.style.border = "2px solid #1e3a8a";
@@ -1495,7 +1533,7 @@ if (!localStorage.getItem("username")) {
   overlay.classList.add("active");
 } else {
   username = localStorage.getItem("username");
-  userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/36";
+  userPFP = localStorage.getItem("pfp") || "https://via.placeholder.com/80";
 }
 window.addEventListener("DOMContentLoaded", () => {
   const username = localStorage.getItem("lastFmUser");
@@ -1540,7 +1578,7 @@ document.getElementById("firstCreateBtn").onclick = () => {
     };
     reader.readAsDataURL(file);
   } else {
-    userPFP = "https://via.placeholder.com/36";
+    userPFP = "https://via.placeholder.com/80";
     localStorage.setItem("pfp", userPFP);
     finishFirstLaunch();
   }
@@ -1725,6 +1763,21 @@ async function saveProfileToAccount() {
       uid,
       profileUrl: pointer.profileUrl,
       profileBinId: pointer.binId,
+      username: profileData.username || "PLAYER",
+      displayName: profileData.displayName || "",
+      pfp: profileData.pfp || getFallbackPfp(),
+      pronouns: profileData.pronouns || "",
+      status: profileData.status || "",
+      bio: profileData.bio || "",
+      banner: profileData.banner || "",
+      badges: profileData.badges || [],
+      joinDate: profileData.joinDate || "",
+      socials: profileData.socials || {},
+      favoriteSong: profileData.favoriteSong || "",
+      messageCount: profileData.messageCount || 0,
+      profileColor: profileData.profileColor || "#1e3a8a",
+      profileCardBg: profileData.profileCardBg || "#111111",
+      lastFmUser: profileData.lastFmUser || "",
       updatedAt: Date.now()
     });
 
@@ -1813,7 +1866,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 <div id="profileModal" class="profile-modal">
   <div class="profile-card">
-    
+
     <div class="profile-banner"></div>
     <img id="profileAvatar" class="profile-avatar">
 
