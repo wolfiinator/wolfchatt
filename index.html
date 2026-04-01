@@ -10,7 +10,14 @@
 
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
+  
+video 
+{
+    width: 200%;
+    max-width: 200px;
+    max-height: 300px;
+}
+  
 html, body {
 width: 100%;
 height: 100%;
@@ -543,7 +550,42 @@ Not connected.
     other chat rooms (a)<br>
     <br><br>
     no idea what else im gonna add yet, but u get the point<br>
-    - wolf/owner.
+    - wolf/owner. 
+    <br>
+    <br>
+    <video id="randomVideoPlayer" controls>
+  Your browser does not support the video tag.
+</video>
+
+    <script>
+      // Array of video sources
+  var videoList = [
+    "https://files.catbox.moe/ztw5b1.mp4",
+    "https://files.catbox.moe/dj0r9k.mp4",
+    "https://files.catbox.moe/n8xy9h.mp4",
+    "https://files.catbox.moe/vp8zor.mp4",
+    "https://files.catbox.moe/ehz12n.mp4",
+    "https://files.catbox.moe/c7jza8.mp4",
+    "https://files.catbox.moe/15zd6z.mp4",
+    "https://files.catbox.moe/2f4g30.mp4"
+  ];
+
+  // Function to get a random video URL
+  function getRandomVideoUrl() {
+    var randomIndex = Math.floor(Math.random() * videoList.length);
+    return videoList[randomIndex];
+  }
+
+  // Function to load the random video on page load
+  window.onload = function() {
+    var videoPlayer = document.getElementById("randomVideoPlayer");
+    var randomVideoSrc = getRandomVideoUrl();
+    videoPlayer.src = randomVideoSrc;
+    videoPlayer.load(); 
+    videoPlayer.volume = 0.025;
+
+  };
+    </script>
     </div>
   </div>
 </div>
