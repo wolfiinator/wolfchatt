@@ -41,7 +41,7 @@ animation: bgFade 12s ease infinite;
 }
 
 /* CHAT */
-.chat-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; position: relative; }
+.chat-container { width: 100vw; height: 100vh; height: 100dvh; display: flex; flex-direction: column; position: relative; }
 
 .chat-loading {
 position: absolute;
@@ -75,7 +75,16 @@ margin-bottom: 10px;
 100% { transform: rotate(360deg); }
 }
 
-.chat-box { flex: 1; padding: 16px; overflow-y: auto; opacity: 0; transition: opacity 0.5s ease; }
+.chat-box {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
 .chat-box.loaded { opacity: 1; }
 
 .message { display: flex; margin-bottom: 14px; align-items: flex-end; animation: msgIn 0.25s ease-out; }
@@ -660,6 +669,11 @@ const firebaseConfig = {
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth = getAuth(app);
+const JSONBIN_BASE_URL = "https://api.jsonbin.io/v3/b";
+
+function getJsonBinAccessKey() {
+  return localStorage.getItem("jsonbinAccessKey") || "";
+}
 
 import { get, ref as dbRef } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -683,21 +697,33 @@ onChildAdded(messagesQuery, async (snap) => {
 
   let username = msg.username;
   let pfp = msg.pfp;
-  let extraData = msg;
+  let extraData = { uid: msg.uid, name: username || "PLAYER" };
 
-  if (!username || !pfp) {
-    try {
-      const profileSnap = await get(ref(db, "profiles/" + msg.uid));
-      const profile = profileSnap.exists() ? profileSnap.val() : {};
+  try {
+    let profile = null;
+
+    if (msg.profileUrl) {
+      profile = await fetchProfileByUrl(msg.profileUrl);
+    }
+
+    if (!profile && msg.uid) {
+      profile = await getProfileFromAccount(msg.uid);
+    }
+
+    if (profile) {
       username = profile.username || username || "PLAYER";
       pfp = profile.pfp || pfp || "https://via.placeholder.com/36";
       extraData = { ...profile, uid: msg.uid, name: username };
-    } catch (e) {
-      console.error("Profile fetch failed:", e);
+    } else {
       username = username || "PLAYER";
       pfp = pfp || "https://via.placeholder.com/36";
       extraData = { uid: msg.uid, name: username };
     }
+  } catch (e) {
+    console.error("Profile fetch failed:", e);
+    username = username || "PLAYER";
+    pfp = pfp || "https://via.placeholder.com/36";
+    extraData = { uid: msg.uid, name: username };
   }
 
   addMessage(
@@ -749,6 +775,71 @@ let firstMessageLoaded=false;
 const profileCache = {};
 let lastNowPlaying = null; // tracks last track sent to chat
 
+function shouldAutoScroll() {
+  const threshold = 80;
+  return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
+}
+
+async function fetchProfileByUrl(profileUrl) {
+  if (!profileUrl) return null;
+  if (profileCache[profileUrl]) return profileCache[profileUrl];
+
+  const jsonBinKey = getJsonBinAccessKey();
+  if (!jsonBinKey) {
+    return null;
+  }
+
+  try {
+    const res = await fetch(profileUrl, {
+      headers: { "X-Access-Key": jsonBinKey }
+    });
+    if (!res.ok) return null;
+    const payload = await res.json();
+    const profile = payload.record || null;
+    if (profile) profileCache[profileUrl] = profile;
+    return profile;
+  } catch (error) {
+    console.error("JSONBin read failed:", error);
+    return null;
+  }
+}
+
+async function upsertProfileToJsonBin(profileData) {
+  const jsonBinKey = getJsonBinAccessKey();
+  if (!jsonBinKey) {
+    showStatusPopup("Set localStorage.jsonbinAccessKey first.", 3500);
+    throw new Error("Missing JSONBin access key.");
+  }
+
+  const existingBinId = localStorage.getItem("profileBinId");
+  const url = existingBinId ? `${JSONBIN_BASE_URL}/${existingBinId}` : JSONBIN_BASE_URL;
+  const method = existingBinId ? "PUT" : "POST";
+
+  const res = await fetch(url, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Access-Key": jsonBinKey
+    },
+    body: JSON.stringify(profileData)
+  });
+
+  if (!res.ok) {
+    throw new Error(`JSONBin write failed with status ${res.status}`);
+  }
+
+  const payload = await res.json();
+  const binId = payload.metadata?.id || existingBinId;
+  if (!binId) throw new Error("JSONBin response missing bin id.");
+
+  const profileUrl = `${JSONBIN_BASE_URL}/${binId}/latest`;
+  localStorage.setItem("profileBinId", binId);
+  localStorage.setItem("profileUrl", profileUrl);
+  profileCache[profileUrl] = profileData;
+
+  return { binId, profileUrl };
+}
+
 // --- PAGE TITLE NOTIFICATIONS ---
 const originalTitle = document.title;
 let unreadCount = 0;
@@ -769,6 +860,7 @@ messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ 
 function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
 
 function addMessage(name,text,img,time,key,data){
+const stickToBottom = shouldAutoScroll();
 const m=document.createElement("div");
 const side = (auth.currentUser && data.uid === auth.currentUser.uid)
   ? "user"
@@ -810,7 +902,9 @@ bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
   ext: ".svg"
 });
 
-chatBox.scrollTop=chatBox.scrollHeight;
+if (stickToBottom) {
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 
 if(!firstMessageLoaded){
 firstMessageLoaded=true;
@@ -834,7 +928,12 @@ async function getProfileFromAccount(uid) {
   try {
     const snap = await get(ref(db, "profiles/" + uid));
     if (snap.exists()) {
-      return snap.val();
+      const profileRefData = snap.val();
+      if (profileRefData?.profileUrl) {
+        const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
+        if (fromJsonBin) return fromJsonBin;
+      }
+      return profileRefData;
     } else {
       return {};
     }
@@ -869,10 +968,16 @@ window.sendMessage = async () => {
     localStorage.getItem("pfp") ||
     "https://via.placeholder.com/36";
 
+  const profileUrl =
+    profile.profileUrl ||
+    localStorage.getItem("profileUrl") ||
+    null;
+
   push(messagesRootRef, {
     uid,
     text,
     ts: Date.now(),
+    profileUrl,
     username: finalUsername,
     pfp: finalPfp
   });
@@ -1605,41 +1710,29 @@ authStatus.textContent="Not logged in";
 function migrateLocalProfile(){
   if(!auth.currentUser) return;
 
-  const profile = {
-    username: localStorage.getItem("username"),
-    displayName: localStorage.getItem("displayName"),
-    pronouns: localStorage.getItem("pronouns"),
-    bio: localStorage.getItem("bio"),
-    status: localStorage.getItem("status"),
-    pfp: localStorage.getItem("pfp"),        // ✅ FIXED
-    banner: localStorage.getItem("banner"),  // ✅ FIXED
-    profileColor: localStorage.getItem("profileColor"),
-    profileCardBg: localStorage.getItem("profileCardBg"),
-    lastFmUser: localStorage.getItem("lastFmUser"),
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
-    joinDate: localStorage.getItem("joinDate"),
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
-    favoriteSong: localStorage.getItem("favoriteSong")
-  };
-
-  set(ref(db,"profiles/"+auth.currentUser.uid), profile);
-
-  showStatusPopup("Profile synced to account!");
+  saveProfileToAccount();
 }
 
-function saveProfileToAccount() {
+async function saveProfileToAccount() {
   if (!auth.currentUser) return;
 
-  const uid = auth.currentUser.uid;
-  const profileData = getProfileLayout();
+  try {
+    const uid = auth.currentUser.uid;
+    const profileData = getProfileLayout();
+    const pointer = await upsertProfileToJsonBin(profileData);
 
-  set(ref(db, `profiles/${uid}`), profileData)
-    .then(() => {
-      console.log("Profile saved to account.");
-    })
-    .catch(err => {
-      console.error("Failed to save profile:", err);
+    await set(ref(db, `profiles/${uid}`), {
+      uid,
+      profileUrl: pointer.profileUrl,
+      profileBinId: pointer.binId,
+      updatedAt: Date.now()
     });
+
+    console.log("Profile saved to JSONBin + Firebase pointer.");
+  } catch (err) {
+    console.error("Failed to save profile:", err);
+    showStatusPopup("Profile save failed.", 2500);
+  }
 }
 
 
@@ -1649,20 +1742,29 @@ if(!user) return;
 
 const profileRef=ref(db,"profiles/"+user.uid);
 
-onValue(profileRef,(snap)=>{
+onValue(profileRef, async (snap)=>{
   if(!snap.exists()) return;
 
   const data = snap.val();
+  if (data.profileUrl) {
+    localStorage.setItem("profileUrl", data.profileUrl);
+  }
+  if (data.profileBinId) {
+    localStorage.setItem("profileBinId", data.profileBinId);
+  }
 
-  Object.keys(data).forEach(k => {
-    if (data[k] !== undefined && data[k] !== null) {
-      if (typeof data[k] === "object") {
-        localStorage.setItem(k, JSON.stringify(data[k]));
-      } else {
-        localStorage.setItem(k, data[k]);
+  const profileData = data.profileUrl ? await fetchProfileByUrl(data.profileUrl) : null;
+  if (profileData) {
+    Object.keys(profileData).forEach(k => {
+      if (profileData[k] !== undefined && profileData[k] !== null) {
+        if (typeof profileData[k] === "object") {
+          localStorage.setItem(k, JSON.stringify(profileData[k]));
+        } else {
+          localStorage.setItem(k, profileData[k]);
+        }
       }
-    }
-  });
+    });
+  }
 
   hydrateProfileFields(getProfileLayout());
 });
