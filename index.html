@@ -1029,7 +1029,12 @@ function getProfileLayout() {
     profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
     profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
     pfp: localStorage.getItem("pfp") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || ""
+    lastFmUser: localStorage.getItem("lastFmUser") || "",
+    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+    joinDate: localStorage.getItem("joinDate") || "",
+    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+    favoriteSong: localStorage.getItem("favoriteSong") || "",
+    messageCount: parseInt(localStorage.getItem("messageCount") || "0")
   };
 }
 
@@ -1107,6 +1112,7 @@ document.getElementById("importLayoutBtn").onclick = () => {
 document.getElementById("setStatusBtn").onclick = () => {
   const val = document.getElementById("statusInput").value.trim();
   localStorage.setItem("status", val);
+  saveProfileToAccount();
   alert("Status updated.");
 };
 
@@ -1114,6 +1120,7 @@ document.getElementById("setJoinDateBtn").onclick = () => {
   const val = document.getElementById("joinDateInput").value;
   if (!val) return;
   localStorage.setItem("joinDate", val);
+  saveProfileToAccount();
   alert("Join date updated.");
 };
 
@@ -1121,12 +1128,14 @@ document.getElementById("setBadgesBtn").onclick = () => {
   const val = document.getElementById("badgesInput").value;
   const arr = val.split(",").map(b => b.trim()).filter(Boolean);
   localStorage.setItem("badges", JSON.stringify(arr));
+  saveProfileToAccount();
   alert("Badges updated.");
 };
 
 document.getElementById("setFavoriteSongBtn").onclick = () => {
   const val = document.getElementById("favoriteSongInput").value.trim();
   localStorage.setItem("favoriteSong", val);
+  saveProfileToAccount();
   alert("Favorite song updated.");
 };
 
@@ -1136,6 +1145,7 @@ document.getElementById("setSocialsBtn").onclick = () => {
     github: document.getElementById("githubInput").value.trim()
   };
   localStorage.setItem("socials", JSON.stringify(socials));
+  saveProfileToAccount();
   alert("Social links saved.");
 };
 
