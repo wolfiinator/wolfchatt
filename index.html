@@ -718,6 +718,11 @@ onChildAdded(messagesQuery, async (snap) => {
   try {
     let profile = null;
 
+    if (msg.profileRef) {
+      profile = await fetchProfileByUrl(`db:${msg.profileRef}`);
+    }
+
+    if (!profile && msg.profileUrl) {
     if (msg.profileUrl) {
       profile = await fetchProfileByUrl(msg.profileUrl);
     }
@@ -800,6 +805,22 @@ async function fetchProfileByUrl(profileUrl) {
   if (!profileUrl) return null;
   if (profileCache[profileUrl]) return profileCache[profileUrl];
 
+  if (profileUrl.startsWith("db:")) {
+    const dbPath = profileUrl.slice(3);
+    if (!dbPath) return null;
+    try {
+      const snap = await get(ref(db, dbPath));
+      if (!snap.exists()) return null;
+      const profile = snap.val();
+      profileCache[profileUrl] = profile;
+      return profile;
+    } catch (error) {
+      console.error("DB profile read failed:", error);
+      return null;
+    }
+  }
+
+  return null;
   const jsonBinKey = getJsonBinAccessKey();
   if (!jsonBinKey) {
     return null;
@@ -966,6 +987,10 @@ async function getProfileFromAccount(uid) {
     const snap = await get(ref(db, "profiles/" + uid));
     if (snap.exists()) {
       const profileRefData = snap.val();
+      if (profileRefData?.profileData) {
+        return { ...profileRefData, ...profileRefData.profileData };
+      }
+      return profileRefData || {};
       if (profileRefData?.profileUrl) {
         const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
         if (fromJsonBin) return { ...profileRefData, ...fromJsonBin };
@@ -994,6 +1019,8 @@ window.sendMessage = async () => {
   const uid = auth.currentUser.uid;
 
   const profile = await getProfileFromAccount(uid);
+  const profileRef = `profiles/${uid}`;
+  const profileUrl = profile.profileUrl || `db:${profileRef}`;
 
   const finalUsername =
     profile.username ||
@@ -1014,6 +1041,8 @@ window.sendMessage = async () => {
     uid,
     text,
     ts: Date.now(),
+    profileRef,
+    profileUrl
     profileUrl,
     username: finalUsername,
     pfp: finalPfp
@@ -1757,6 +1786,13 @@ async function saveProfileToAccount() {
   try {
     const uid = auth.currentUser.uid;
     const profileData = getProfileLayout();
+    const profileRef = `profiles/${uid}`;
+    const profileUrl = `db:${profileRef}`;
+
+    await set(ref(db, `profiles/${uid}`), {
+      uid,
+      profileRef,
+      profileUrl,
     const pointer = await upsertProfileToJsonBin(profileData);
 
     await set(ref(db, `profiles/${uid}`), {
@@ -1778,6 +1814,14 @@ async function saveProfileToAccount() {
       profileColor: profileData.profileColor || "#1e3a8a",
       profileCardBg: profileData.profileCardBg || "#111111",
       lastFmUser: profileData.lastFmUser || "",
+      profileData,
+      updatedAt: Date.now()
+    });
+
+    localStorage.setItem("profileRef", profileRef);
+    localStorage.setItem("profileUrl", profileUrl);
+    profileCache[profileUrl] = profileData;
+    console.log("Profile saved to Firebase.");
       updatedAt: Date.now()
     });
 
@@ -1799,6 +1843,18 @@ onValue(profileRef, async (snap)=>{
   if(!snap.exists()) return;
 
   const data = snap.val();
+  if (data.profileRef) {
+    localStorage.setItem("profileRef", data.profileRef);
+  }
+  if (data.profileUrl) {
+    localStorage.setItem("profileUrl", data.profileUrl);
+  }
+
+  const profileData = data.profileData
+    ? data.profileData
+    : (data.profileUrl ? await fetchProfileByUrl(data.profileUrl) : null);
+
+  if (profileData && typeof profileData === "object") {
   if (data.profileUrl) {
     localStorage.setItem("profileUrl", data.profileUrl);
   }
