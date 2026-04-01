@@ -681,21 +681,32 @@ onChildAdded(messagesQuery, async (snap) => {
   if (renderedMessages.has(key)) return;
   renderedMessages.add(key);
 
-  // Fetch profile
-  const profileSnap = await get(ref(db, "profiles/" + msg.uid));
-  const profile = profileSnap.exists() ? profileSnap.val() : {};
+  let username = msg.username;
+  let pfp = msg.pfp;
+  let extraData = msg;
+
+  if (!username || !pfp) {
+    try {
+      const profileSnap = await get(ref(db, "profiles/" + msg.uid));
+      const profile = profileSnap.exists() ? profileSnap.val() : {};
+      username = profile.username || username || "PLAYER";
+      pfp = profile.pfp || pfp || "https://via.placeholder.com/36";
+      extraData = { ...profile, uid: msg.uid, name: username };
+    } catch (e) {
+      console.error("Profile fetch failed:", e);
+      username = username || "PLAYER";
+      pfp = pfp || "https://via.placeholder.com/36";
+      extraData = { uid: msg.uid, name: username };
+    }
+  }
 
   addMessage(
-    profile.username || msg.username || "PLAYER",
+    username,
     msg.text,
-    profile.pfp || msg.pfp || "https://via.placeholder.com/36",
+    pfp,
     new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     key,
-    {
-      ...profile,
-      uid: msg.uid,
-      name: profile.username || msg.username || "PLAYER"
-    }
+    extraData
   );
 });
 
