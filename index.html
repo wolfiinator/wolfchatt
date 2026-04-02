@@ -711,9 +711,26 @@ onChildAdded(messagesQuery, async (snap) => {
     }
 
     if (profile) {
-      username = profile.username || username || "PLAYER";
-      pfp = profile.pfp || pfp || "https://via.placeholder.com/36";
-      extraData = { ...profile, uid: msg.uid, name: username };
+  username = profile.username || username || "PLAYER";
+
+  // hard fallback
+  pfp =
+    profile.pfp ||
+    msg.pfp ||
+    localStorage.getItem("pfp") ||
+    "https://via.placeholder.com/36";
+
+  extraData = { ...profile, uid: msg.uid, name: username };
+} else {
+  username = username || "PLAYER";
+
+  pfp =
+    msg.pfp ||
+    localStorage.getItem("pfp") ||
+    "https://via.placeholder.com/36";
+
+  extraData = { uid: msg.uid, name: username };
+}
     } else {
       username = username || "PLAYER";
       pfp = pfp || "https://via.placeholder.com/36";
@@ -895,6 +912,7 @@ delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
 m.querySelector(".bubble").appendChild(delBtn);
 }
 chatBox.appendChild(m);
+chatBox.scrollHeight;
 
 const bubble = m.querySelector(".bubble");
 bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
@@ -903,7 +921,9 @@ bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
 });
 
 if (stickToBottom) {
-  chatBox.scrollTop = chatBox.scrollHeight;
+  requestAnimationFrame(() => {
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
 }
 
 if(!firstMessageLoaded){
