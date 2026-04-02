@@ -669,11 +669,6 @@ const firebaseConfig = {
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth = getAuth(app);
-const JSONBIN_BASE_URL = "https://api.jsonbin.io/v3/b";
-
-function getJsonBinAccessKey() {
-  return localStorage.getItem("jsonbinAccessKey") || "";
-}
 
 import { get, ref as dbRef } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -695,53 +690,12 @@ onChildAdded(messagesQuery, async (snap) => {
   if (renderedMessages.has(key)) return;
   renderedMessages.add(key);
 
-  let username = msg.username;
-  let pfp = msg.pfp;
-  let extraData = { uid: msg.uid, name: username || "PLAYER" };
+  let profile = await getProfileFromAccount(msg.uid);
 
-  try {
-    let profile = null;
+let username = profile.username || "PLAYER";
+let pfp = profile.pfp || "https://via.placeholder.com/36";
 
-    if (msg.profileUrl) {
-      profile = await fetchProfileByUrl(msg.profileUrl);
-    }
-
-    if (!profile && msg.uid) {
-      profile = await getProfileFromAccount(msg.uid);
-    }
-
-    if (profile) {
-  username = profile.username || username || "PLAYER";
-
-  // hard fallback
-  pfp =
-    profile.pfp ||
-    msg.pfp ||
-    localStorage.getItem("pfp") ||
-    "https://via.placeholder.com/36";
-
-  extraData = { ...profile, uid: msg.uid, name: username };
-} else {
-  username = username || "PLAYER";
-
-  pfp =
-    msg.pfp ||
-    localStorage.getItem("pfp") ||
-    "https://via.placeholder.com/36";
-
-  extraData = { uid: msg.uid, name: username };
-}
-    } else {
-      username = username || "PLAYER";
-      pfp = pfp || "https://via.placeholder.com/36";
-      extraData = { uid: msg.uid, name: username };
-    }
-  } catch (e) {
-    console.error("Profile fetch failed:", e);
-    username = username || "PLAYER";
-    pfp = pfp || "https://via.placeholder.com/36";
-    extraData = { uid: msg.uid, name: username };
-  }
+let extraData = { ...profile, uid: msg.uid, name: username };
 
   addMessage(
     username,
@@ -795,66 +749,6 @@ let lastNowPlaying = null; // tracks last track sent to chat
 function shouldAutoScroll() {
   const threshold = 80;
   return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
-}
-
-async function fetchProfileByUrl(profileUrl) {
-  if (!profileUrl) return null;
-  if (profileCache[profileUrl]) return profileCache[profileUrl];
-
-  const jsonBinKey = getJsonBinAccessKey();
-  if (!jsonBinKey) {
-    return null;
-  }
-
-  try {
-    const res = await fetch(profileUrl, {
-      headers: { "X-Access-Key": jsonBinKey }
-    });
-    if (!res.ok) return null;
-    const payload = await res.json();
-    const profile = payload.record || null;
-    if (profile) profileCache[profileUrl] = profile;
-    return profile;
-  } catch (error) {
-    console.error("JSONBin read failed:", error);
-    return null;
-  }
-}
-
-async function upsertProfileToJsonBin(profileData) {
-  const jsonBinKey = getJsonBinAccessKey();
-  if (!jsonBinKey) {
-    showStatusPopup("Set localStorage.jsonbinAccessKey first.", 3500);
-    throw new Error("Missing JSONBin access key.");
-  }
-
-  const existingBinId = localStorage.getItem("profileBinId");
-  const url = existingBinId ? `${JSONBIN_BASE_URL}/${existingBinId}` : JSONBIN_BASE_URL;
-  const method = existingBinId ? "PUT" : "POST";
-
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Access-Key": jsonBinKey
-    },
-    body: JSON.stringify(profileData)
-  });
-
-  if (!res.ok) {
-    throw new Error(`JSONBin write failed with status ${res.status}`);
-  }
-
-  const payload = await res.json();
-  const binId = payload.metadata?.id || existingBinId;
-  if (!binId) throw new Error("JSONBin response missing bin id.");
-
-  const profileUrl = `${JSONBIN_BASE_URL}/${binId}/latest`;
-  localStorage.setItem("profileBinId", binId);
-  localStorage.setItem("profileUrl", profileUrl);
-  profileCache[profileUrl] = profileData;
-
-  return { binId, profileUrl };
 }
 
 // --- PAGE TITLE NOTIFICATIONS ---
@@ -912,7 +806,6 @@ delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
 m.querySelector(".bubble").appendChild(delBtn);
 }
 chatBox.appendChild(m);
-chatBox.scrollHeight;
 
 const bubble = m.querySelector(".bubble");
 bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
@@ -921,9 +814,7 @@ bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
 });
 
 if (stickToBottom) {
-  requestAnimationFrame(() => {
-    chatBox.scrollTop = chatBox.scrollHeight;
-  });
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 if(!firstMessageLoaded){
@@ -944,19 +835,19 @@ setTimeout(() => {
   }
 }, 1500);
 
+const profileCacheByUid = {};
+
 async function getProfileFromAccount(uid) {
+  if (profileCacheByUid[uid]) return profileCacheByUid[uid];
+
   try {
     const snap = await get(ref(db, "profiles/" + uid));
     if (snap.exists()) {
-      const profileRefData = snap.val();
-      if (profileRefData?.profileUrl) {
-        const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
-        if (fromJsonBin) return fromJsonBin;
-      }
-      return profileRefData;
-    } else {
-      return {};
+      const data = snap.val();
+      profileCacheByUid[uid] = data;
+      return data;
     }
+    return {};
   } catch (e) {
     console.error("Profile fetch failed:", e);
     return {};
@@ -996,10 +887,7 @@ window.sendMessage = async () => {
   push(messagesRootRef, {
     uid,
     text,
-    ts: Date.now(),
-    profileUrl,
-    username: finalUsername,
-    pfp: finalPfp
+    ts: Date.now()
   });
 };
 
@@ -1733,22 +1621,20 @@ function migrateLocalProfile(){
   saveProfileToAccount();
 }
 
-async function saveProfileToAccount() {
+async function saveProfileToAccount() {async function saveProfileToAccount() {
   if (!auth.currentUser) return;
 
   try {
     const uid = auth.currentUser.uid;
     const profileData = getProfileLayout();
-    const pointer = await upsertProfileToJsonBin(profileData);
 
     await set(ref(db, `profiles/${uid}`), {
+      ...profileData,
       uid,
-      profileUrl: pointer.profileUrl,
-      profileBinId: pointer.binId,
       updatedAt: Date.now()
     });
 
-    console.log("Profile saved to JSONBin + Firebase pointer.");
+    console.log("Profile saved to Firebase.");
   } catch (err) {
     console.error("Failed to save profile:", err);
     showStatusPopup("Profile save failed.", 2500);
