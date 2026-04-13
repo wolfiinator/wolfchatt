@@ -1131,6 +1131,26 @@ document.getElementById("setColorBtn").onclick = () => {
 };
 
 function getProfileLayout() {
+  const parseStoredJson = (key, fallback) => {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === undefined || raw === "") return fallback;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed === null || parsed === undefined) return fallback;
+      return parsed;
+    } catch {
+      // Backward compatibility for older/plain-string storage formats.
+      if (key === "badges") {
+        return raw
+          .split(",")
+          .map(v => v.trim())
+          .filter(Boolean);
+      }
+      return fallback;
+    }
+  };
+
   return {
     username: localStorage.getItem("username") || "",
     displayName: localStorage.getItem("displayName") || "",
@@ -1142,9 +1162,9 @@ function getProfileLayout() {
     profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
     pfp: localStorage.getItem("pfp") || "",
     lastFmUser: localStorage.getItem("lastFmUser") || "",
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+    badges: parseStoredJson("badges", []),
     joinDate: localStorage.getItem("joinDate") || "",
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+    socials: parseStoredJson("socials", {}),
     favoriteSong: localStorage.getItem("favoriteSong") || "",
     messageCount: parseInt(localStorage.getItem("messageCount") || "0")
   };
