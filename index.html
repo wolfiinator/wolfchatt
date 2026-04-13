@@ -1013,12 +1013,12 @@ window.saveProfile = () => {
 
   if (usernameInput.value.trim()) {
     username = usernameInput.value.trim();
-    localStorage.setItem("username", username);
+    if (!safeSetLocalStorage("username", username)) return;
   }
 
-  localStorage.setItem("displayName", displayNameInput.value.trim());
-  localStorage.setItem("pronouns", pronounsInput.value.trim());
-  localStorage.setItem("bio", bioInput.value.trim());
+  if (!safeSetLocalStorage("displayName", displayNameInput.value.trim())) return;
+  if (!safeSetLocalStorage("pronouns", pronounsInput.value.trim())) return;
+  if (!safeSetLocalStorage("bio", bioInput.value.trim())) return;
 
   const pfpUpload = document.getElementById("pfpUpload");
   if (pfpUpload.files[0]) {
@@ -1081,28 +1081,28 @@ document.getElementById("setUsernameBtn").onclick = () => {
   const val = document.getElementById("usernameInput").value.trim();
   if (!val) return;
   username = val;
-  localStorage.setItem("username", val);
+  if (!safeSetLocalStorage("username", val)) return;
   saveProfileToAccount();
   alert("Username updated.");
 };
 
 document.getElementById("setDisplayNameBtn").onclick = () => {
   const val = document.getElementById("displayNameInput").value.trim();
-  localStorage.setItem("displayName", val);
+  if (!safeSetLocalStorage("displayName", val)) return;
   saveProfileToAccount();
   alert("Display name updated.");
 };
 
 document.getElementById("setPronounsBtn").onclick = () => {
   const val = document.getElementById("pronounsInput").value.trim();
-  localStorage.setItem("pronouns", val);
+  if (!safeSetLocalStorage("pronouns", val)) return;
   saveProfileToAccount();
   alert("Pronouns updated.");
 };
 
 document.getElementById("setBioBtn").onclick = () => {
   const val = document.getElementById("bioInput").value.trim();
-  localStorage.setItem("bio", val);
+  if (!safeSetLocalStorage("bio", val)) return;
   saveProfileToAccount();
   alert("Bio updated.");
 };
