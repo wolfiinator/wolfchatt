@@ -1171,6 +1171,43 @@ function getProfileLayout() {
   };
 }
 
+const MAX_PROFILE_IMAGE_BYTES = 900 * 1024; // keep profile docs well under remote payload limits
+
+function estimateDataUrlBytes(value) {
+  if (typeof value !== "string" || !value.startsWith("data:")) return 0;
+  const commaIndex = value.indexOf(",");
+  if (commaIndex === -1) return value.length;
+
+  const meta = value.slice(0, commaIndex);
+  const payload = value.slice(commaIndex + 1);
+
+  if (meta.includes(";base64")) {
+    const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+    return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+  }
+
+  try {
+    return decodeURIComponent(payload).length;
+  } catch {
+    return payload.length;
+  }
+}
+
+function getSyncSafeProfileData(layout) {
+  const syncData = { ...layout };
+  const droppedFields = [];
+
+  ["pfp", "banner"].forEach(field => {
+    const bytes = estimateDataUrlBytes(syncData[field]);
+    if (bytes > MAX_PROFILE_IMAGE_BYTES) {
+      syncData[field] = "";
+      droppedFields.push(field);
+    }
+  });
+
+  return { syncData, droppedFields };
+}
+
 function hydrateProfileFields(layout) {
   document.getElementById("usernameInput").value = layout.username || "";
   document.getElementById("displayNameInput").value = layout.displayName || "";
@@ -1742,7 +1779,8 @@ async function saveProfileToAccount() {
 
   try {
     const uid = auth.currentUser.uid;
-    const profileData = getProfileLayout();
+    const localProfileData = getProfileLayout();
+    const { syncData: profileData, droppedFields } = getSyncSafeProfileData(localProfileData);
     const profileDoc = {
       uid,
       profileData,
@@ -1758,6 +1796,10 @@ async function saveProfileToAccount() {
     }
 
     await set(ref(db, `profiles/${uid}`), profileDoc);
+
+    if (droppedFields.length) {
+      showStatusPopup("Saved, but large image data was skipped for cloud sync.", 3200);
+    }
 
     console.log("Profile saved to account storage.");
   } catch (err) {
