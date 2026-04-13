@@ -1034,6 +1034,48 @@ window.saveProfile = () => {
 };
 
 /* CUSTOM TAB BUTTONS */
+function safeSetLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.error(`Failed to save ${key} locally:`, err);
+    showStatusPopup("Storage is full. Use a smaller image and try again.", 3200);
+    return false;
+  }
+}
+
+function optimizeImageFile(file, {
+  maxWidth = 1400,
+  maxHeight = 500,
+  mimeType = "image/jpeg",
+  quality = 0.82
+} = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas unavailable."));
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL(mimeType, quality));
+      };
+      img.onerror = () => reject(new Error("Invalid image file."));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+}
 
 document.getElementById("setUsernameBtn").onclick = () => {
   const val = document.getElementById("usernameInput").value.trim();
@@ -1083,13 +1125,14 @@ document.getElementById("setBannerBtn").onclick = () => {
   const file = document.getElementById("bannerUpload").files[0];
   if (!file) return alert("Select a banner first.");
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    localStorage.setItem("banner", e.target.result);
+  optimizeImageFile(file).then(optimizedBanner => {
+    if (!safeSetLocalStorage("banner", optimizedBanner)) return;
     saveProfileToAccount();
     alert("Banner updated.");
-  };
-  reader.readAsDataURL(file);
+  }).catch(err => {
+    console.error("Banner processing failed:", err);
+    showStatusPopup("Couldn't process banner image.", 2600);
+  });
 };
 
 document.getElementById("setColorBtn").onclick = () => {
@@ -1103,7 +1146,7 @@ document.getElementById("setCardBgBtn").onclick = () => {
   const color = document.getElementById("cardBgColorPicker").value;
 
   // Save to localStorage
-  localStorage.setItem("profileCardBg", color);
+  if (!safeSetLocalStorage("profileCardBg", color)) return;
 
   // Update profile card background immediately
   const profileCard = document.querySelector(".profile-card");
@@ -1119,7 +1162,7 @@ document.getElementById("setColorBtn").onclick = () => {
   const color = document.getElementById("colorPicker").value;
 
   // Save to localStorage
-  localStorage.setItem("profileColor", color);
+  if (!safeSetLocalStorage("profileColor", color)) return;
 
   // Update profile card border immediately
   const profileCard = document.querySelector(".profile-card");
