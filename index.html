@@ -933,7 +933,10 @@ async function getProfileFromAccount(uid) {
         const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
         if (fromJsonBin) return fromJsonBin;
       }
-      return profileRefData;
+      if (profileRefData?.profileData && typeof profileRefData.profileData === "object") {
+        return profileRefData.profileData;
+      }
+      return profileRefData || {};
     } else {
       return {};
     }
@@ -1128,6 +1131,26 @@ document.getElementById("setColorBtn").onclick = () => {
 };
 
 function getProfileLayout() {
+  const parseStoredJson = (key, fallback) => {
+    const raw = localStorage.getItem(key);
+    if (raw === null || raw === undefined || raw === "") return fallback;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed === null || parsed === undefined) return fallback;
+      return parsed;
+    } catch {
+      // Backward compatibility for older/plain-string storage formats.
+      if (key === "badges") {
+        return raw
+          .split(",")
+          .map(v => v.trim())
+          .filter(Boolean);
+      }
+      return fallback;
+    }
+  };
+
   return {
     username: localStorage.getItem("username") || "",
     displayName: localStorage.getItem("displayName") || "",
@@ -1139,9 +1162,9 @@ function getProfileLayout() {
     profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
     pfp: localStorage.getItem("pfp") || "",
     lastFmUser: localStorage.getItem("lastFmUser") || "",
-    badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+    badges: parseStoredJson("badges", []),
     joinDate: localStorage.getItem("joinDate") || "",
-    socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+    socials: parseStoredJson("socials", {}),
     favoriteSong: localStorage.getItem("favoriteSong") || "",
     messageCount: parseInt(localStorage.getItem("messageCount") || "0")
   };
@@ -1719,16 +1742,23 @@ async function saveProfileToAccount() {
   try {
     const uid = auth.currentUser.uid;
     const profileData = getProfileLayout();
-    const pointer = await upsertProfileToJsonBin(profileData);
-
-    await set(ref(db, `profiles/${uid}`), {
+    const profileDoc = {
       uid,
-      profileUrl: pointer.profileUrl,
-      profileBinId: pointer.binId,
+      profileData,
       updatedAt: Date.now()
-    });
+    };
 
-    console.log("Profile saved to JSONBin + Firebase pointer.");
+    try {
+      const pointer = await upsertProfileToJsonBin(profileData);
+      profileDoc.profileUrl = pointer.profileUrl;
+      profileDoc.profileBinId = pointer.binId;
+    } catch (jsonBinError) {
+      console.warn("JSONBin unavailable, saving profile directly to Firebase.", jsonBinError);
+    }
+
+    await set(ref(db, `profiles/${uid}`), profileDoc);
+
+    console.log("Profile saved to account storage.");
   } catch (err) {
     console.error("Failed to save profile:", err);
     showStatusPopup("Profile save failed.", 2500);
@@ -1754,13 +1784,17 @@ onValue(profileRef, async (snap)=>{
   }
 
   const profileData = data.profileUrl ? await fetchProfileByUrl(data.profileUrl) : null;
-  if (profileData) {
-    Object.keys(profileData).forEach(k => {
-      if (profileData[k] !== undefined && profileData[k] !== null) {
-        if (typeof profileData[k] === "object") {
-          localStorage.setItem(k, JSON.stringify(profileData[k]));
+  const resolvedProfileData =
+    profileData ||
+    (data.profileData && typeof data.profileData === "object" ? data.profileData : null);
+
+  if (resolvedProfileData) {
+    Object.keys(resolvedProfileData).forEach(k => {
+      if (resolvedProfileData[k] !== undefined && resolvedProfileData[k] !== null) {
+        if (typeof resolvedProfileData[k] === "object") {
+          localStorage.setItem(k, JSON.stringify(resolvedProfileData[k]));
         } else {
-          localStorage.setItem(k, profileData[k]);
+          localStorage.setItem(k, resolvedProfileData[k]);
         }
       }
     });
