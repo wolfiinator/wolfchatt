@@ -1136,15 +1136,15 @@ document.getElementById("setBannerBtn").onclick = () => {
 };
 
 document.getElementById("setColorBtn").onclick = () => {
-  const color = document.getElementById("colorPicker").value;
+  const borderColor = document.getElementById("colorPicker").value;
 
-  // Save to localStorage
-  if (!safeSetLocalStorage("profileColor", color)) return;
+  // Border color is persisted under profileColor.
+  if (!safeSetLocalStorage("profileColor", borderColor)) return;
 
   // Update profile card border immediately
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
-    profileCard.style.borderColor = color;
+    profileCard.style.borderColor = borderColor;
   }
 
   saveProfileToAccount();
@@ -1152,15 +1152,15 @@ document.getElementById("setColorBtn").onclick = () => {
 };
 
 document.getElementById("setCardBgBtn").onclick = () => {
-  const color = document.getElementById("cardBgColorPicker").value;
+  const cardBgColor = document.getElementById("cardBgColorPicker").value;
 
-  // Save to localStorage
-  if (!safeSetLocalStorage("profileCardBg", color)) return;
+  // Card background color is persisted under profileCardBg.
+  if (!safeSetLocalStorage("profileCardBg", cardBgColor)) return;
 
   // Update profile card background immediately
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
-    profileCard.style.background = color;
+    profileCard.style.background = cardBgColor;
   }
 
   saveProfileToAccount();
