@@ -1034,6 +1034,48 @@ window.saveProfile = () => {
 };
 
 /* CUSTOM TAB BUTTONS */
+function safeSetLocalStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch (err) {
+    console.error(`Failed to save ${key} locally:`, err);
+    showStatusPopup("Storage is full. Use a smaller image and try again.", 3200);
+    return false;
+  }
+}
+
+function optimizeImageFile(file, {
+  maxWidth = 1400,
+  maxHeight = 500,
+  mimeType = "image/jpeg",
+  quality = 0.82
+} = {}) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas unavailable."));
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL(mimeType, quality));
+      };
+      img.onerror = () => reject(new Error("Invalid image file."));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Failed to read file."));
+    reader.readAsDataURL(file);
+  });
+}
 
 document.getElementById("setUsernameBtn").onclick = () => {
   const val = document.getElementById("usernameInput").value.trim();
@@ -1083,43 +1125,21 @@ document.getElementById("setBannerBtn").onclick = () => {
   const file = document.getElementById("bannerUpload").files[0];
   if (!file) return alert("Select a banner first.");
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    localStorage.setItem("banner", e.target.result);
+  optimizeImageFile(file).then(optimizedBanner => {
+    if (!safeSetLocalStorage("banner", optimizedBanner)) return;
     saveProfileToAccount();
     alert("Banner updated.");
-  };
-  reader.readAsDataURL(file);
-};
-
-document.getElementById("setColorBtn").onclick = () => {
-  const val = document.getElementById("colorPicker").value;
-  localStorage.setItem("profileColor", val);
-  saveProfileToAccount();
-  alert("Profile color updated.");
-};
-
-document.getElementById("setCardBgBtn").onclick = () => {
-  const color = document.getElementById("cardBgColorPicker").value;
-
-  // Save to localStorage
-  localStorage.setItem("profileCardBg", color);
-
-  // Update profile card background immediately
-  const profileCard = document.querySelector(".profile-card");
-  if (profileCard) {
-    profileCard.style.background = color;
-  }
-
-  saveProfileToAccount();
-  showStatusPopup("Profile background updated!");
+  }).catch(err => {
+    console.error("Banner processing failed:", err);
+    showStatusPopup("Couldn't process banner image.", 2600);
+  });
 };
 
 document.getElementById("setColorBtn").onclick = () => {
   const color = document.getElementById("colorPicker").value;
 
   // Save to localStorage
-  localStorage.setItem("profileColor", color);
+  if (!safeSetLocalStorage("profileColor", color)) return;
 
   // Update profile card border immediately
   const profileCard = document.querySelector(".profile-card");
@@ -1129,6 +1149,22 @@ document.getElementById("setColorBtn").onclick = () => {
 
   saveProfileToAccount();
   showStatusPopup("Profile color updated!");
+};
+
+document.getElementById("setCardBgBtn").onclick = () => {
+  const color = document.getElementById("cardBgColorPicker").value;
+
+  // Save to localStorage
+  if (!safeSetLocalStorage("profileCardBg", color)) return;
+
+  // Update profile card background immediately
+  const profileCard = document.querySelector(".profile-card");
+  if (profileCard) {
+    profileCard.style.background = color;
+  }
+
+  saveProfileToAccount();
+  showStatusPopup("Profile background updated!");
 };
 
 function getProfileLayout() {
@@ -1171,6 +1207,43 @@ function getProfileLayout() {
   };
 }
 
+const MAX_PROFILE_IMAGE_BYTES = 900 * 1024; // keep profile docs well under remote payload limits
+
+function estimateDataUrlBytes(value) {
+  if (typeof value !== "string" || !value.startsWith("data:")) return 0;
+  const commaIndex = value.indexOf(",");
+  if (commaIndex === -1) return value.length;
+
+  const meta = value.slice(0, commaIndex);
+  const payload = value.slice(commaIndex + 1);
+
+  if (meta.includes(";base64")) {
+    const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+    return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+  }
+
+  try {
+    return decodeURIComponent(payload).length;
+  } catch {
+    return payload.length;
+  }
+}
+
+function getSyncSafeProfileData(layout) {
+  const syncData = { ...layout };
+  const droppedFields = [];
+
+  ["pfp", "banner"].forEach(field => {
+    const bytes = estimateDataUrlBytes(syncData[field]);
+    if (bytes > MAX_PROFILE_IMAGE_BYTES) {
+      syncData[field] = "";
+      droppedFields.push(field);
+    }
+  });
+
+  return { syncData, droppedFields };
+}
+
 function hydrateProfileFields(layout) {
   document.getElementById("usernameInput").value = layout.username || "";
   document.getElementById("displayNameInput").value = layout.displayName || "";
@@ -1178,7 +1251,14 @@ function hydrateProfileFields(layout) {
   document.getElementById("bioInput").value = layout.bio || "";
   document.getElementById("statusInput").value = layout.status || "";
   document.getElementById("colorPicker").value = layout.profileColor || "#1e3a8a";
+  document.getElementById("cardBgColorPicker").value = layout.profileCardBg || "#111111";
   document.getElementById("lastFmUsername").value = layout.lastFmUser || "";
+
+  const profileCard = document.querySelector(".profile-card");
+  if (profileCard) {
+    profileCard.style.borderColor = layout.profileColor || "#1e3a8a";
+    profileCard.style.background = layout.profileCardBg || "#111111";
+  }
 }
 
 document.getElementById("exportLayoutBtn").onclick = () => {
@@ -1742,7 +1822,8 @@ async function saveProfileToAccount() {
 
   try {
     const uid = auth.currentUser.uid;
-    const profileData = getProfileLayout();
+    const localProfileData = getProfileLayout();
+    const { syncData: profileData, droppedFields } = getSyncSafeProfileData(localProfileData);
     const profileDoc = {
       uid,
       profileData,
@@ -1758,6 +1839,10 @@ async function saveProfileToAccount() {
     }
 
     await set(ref(db, `profiles/${uid}`), profileDoc);
+
+    if (droppedFields.length) {
+      showStatusPopup("Saved, but large image data was skipped for cloud sync.", 3200);
+    }
 
     console.log("Profile saved to account storage.");
   } catch (err) {
