@@ -670,9 +670,10 @@ const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const auth = getAuth(app);
 const JSONBIN_BASE_URL = "https://api.jsonbin.io/v3/b";
+const JSONBIN_ACCESS_KEY = "$2a$10$T1k9bIUQG/tPk563G8sJuesPsLleH8yDlcCYGvL0M1q8IHQqwQxe6";
 
 function getJsonBinAccessKey() {
-  return localStorage.getItem("jsonbinAccessKey") || "";
+  return localStorage.getItem("jsonbinAccessKey") || JSONBIN_ACCESS_KEY;
 }
 
 import { get, ref as dbRef } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
