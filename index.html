@@ -551,13 +551,13 @@ Not connected.
 <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
 import {
 getDatabase, ref, push, onChildAdded, remove, child, query, limitToLast, onValue
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+} from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
 
 /* Firebase setup */
-const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"w0lfchat.firebaseapp.com", databaseURL:"https://w0lfchat-default-rtdb.firebaseio.com/", projectId:"w0lfchat", storageBucket:"w0lfchat.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
+const firebaseConfig = { apiKey:"AIzaSyANobfowj6ARMsAInqJ5kv6Sfu3mFrmHJ8", authDomain:"w0lfchat.firebaseapp.com", databaseURL:"https://w0lfchat-default-rtdb.firebaseio.com", projectId:"w0lfchat", storageBucket:"w0lfchat.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:03db1c6d8b3060e970d4dd" };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 const messagesRootRef = ref(db, "messages");
@@ -725,7 +725,7 @@ onChildAdded(messagesQuery, snap => {
   }
 });
 
-import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
 
 onChildRemoved(messagesRootRef, snap => {
   const key = snap.key;
