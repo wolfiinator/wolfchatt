@@ -600,6 +600,15 @@ let isOwner=false;
 let firstMessageLoaded=false;
 const renderedMessages = new Set();
 let lastNowPlaying = null; // tracks last track sent to chat
+let chatReady = false;
+
+function markChatReady() {
+if (chatReady) return;
+chatReady = true;
+chatLoading.style.opacity = 0;
+chatBox.classList.add("loaded");
+setTimeout(() => { chatLoading.style.display = "none"; }, 500);
+}
 
 // --- PAGE TITLE NOTIFICATIONS ---
 const originalTitle = document.title;
@@ -661,9 +670,7 @@ chatBox.scrollTop=chatBox.scrollHeight;
 
 if(!firstMessageLoaded){
 firstMessageLoaded=true;
-chatLoading.style.opacity=0;
-chatBox.classList.add("loaded");
-setTimeout(()=>{ chatLoading.style.display="none"; },500);
+markChatReady();
 }
 }
 
@@ -727,6 +734,12 @@ onChildRemoved(messagesRootRef, snap => {
     msgElem.remove(); // Remove it from the DOM on all clients
   }
 });
+
+setTimeout(() => {
+  if (!chatReady) {
+    markChatReady();
+  }
+}, 3000);
 
 /* SETTINGS */
 window.toggleSettings=()=>document.getElementById("settingsPanel").classList.toggle("open");
