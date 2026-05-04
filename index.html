@@ -41,7 +41,7 @@ animation: bgFade 12s ease infinite;
 }
 
 /* CHAT */
-.chat-container { width: 100vw; height: 100vh; height: 100dvh; display: flex; flex-direction: column; position: relative; }
+.chat-container { width: 100vw; height: 100vh; display: flex; flex-direction: column; position: relative; }
 
 .chat-loading {
 position: absolute;
@@ -75,16 +75,7 @@ margin-bottom: 10px;
 100% { transform: rotate(360deg); }
 }
 
-.chat-box {
-  flex: 1;
-  min-height: 0;
-  padding: 16px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
+.chat-box { flex: 1; padding: 16px; overflow-y: auto; opacity: 0; transition: opacity 0.5s ease; }
 .chat-box.loaded { opacity: 1; }
 
 .message { display: flex; margin-bottom: 14px; align-items: flex-end; animation: msgIn 0.25s ease-out; }
@@ -389,18 +380,6 @@ input[type="file"], input[type="text"], input[type="password"] { width: 100%; pa
   100% { left: 100%; }
 }
 
-#emojiBtn{
-background:#020617;
-border:none;
-font-size:20px;
-cursor:pointer;
-padding:6px;
-}
-
-#emojiBtn:hover{
-transform:scale(1.15);
-}
-
 </style>
 </head>
 <body>
@@ -416,36 +395,13 @@ transform:scale(1.15);
 
 <div class="settings-panel" id="settingsPanel">
 <div class="settings-tabs">
-<button class="tab active" onclick="openTab('account')">ACCOUNT</button>
-<button class="tab" onclick="openTab('music')">MUSIC</button>
+<button class="tab active" onclick="openTab('music')">MUSIC</button>
 <button class="tab" onclick="openTab('custom')">CUSTOM</button>
 <button class="tab" onclick="openTab('updates')">UPDATES</button>
 </div>
 
-<!-- ACCOUNT TAB -->
-<div class="tab-content active" id="account">
-
-<h3 style="margin-bottom:10px;">Account</h3>
-
-<label>Email</label>
-<input id="authEmail" type="email" placeholder="email">
-
-<label>Password</label>
-<input id="authPassword" type="password" placeholder="password">
-
-<button class="tab-btn" id="loginAccountBtn">LOGIN</button>
-<button class="tab-btn" id="signupAccountBtn">SIGN UP</button>
-
-<button class="tab-btn" id="logoutAccountBtn">LOG OUT</button>
-
-<div id="authStatus" style="margin-top:10px;font-size:11px;opacity:0.7;">
-Not logged in
-</div>
-
-</div>
-
 <!-- MUSIC TAB -->
-<div class="tab-content" id="music">
+<div class="tab-content active" id="music">
 
 <h3 style="margin-bottom:10px;">Last.fm Rich Presence</h3>
 
@@ -535,10 +491,11 @@ Not connected.
   <div class="song">
     updates (u) // things i wanna add (a)
     <br><br>
-    fixed storage (u)<br>
-    fixed lagging (u)<br>
-    fixed profiles being "undefined" (u)<br>
-    
+    working delete button (u)<br>
+    profile colors (u)<br>
+    new user screen (replaces player - u)<br>
+    fixed crashing issue (u)<br>
+    fixed issue with last.fm connection erroring out randomly (u)<br>
     <br><br>
     typing animations (a)<br>
     more profile configs (a)<br>
@@ -550,8 +507,9 @@ Not connected.
     reply system (a)<br>
     dms (a)<br>
     other chat rooms (a)<br>
+    cap to messages to fix crashing issue (a)<br>
     <br><br>
-    no idea what else im gonna add yet, but u get the point<br>
+    thats probably all that im gonna add for now, but ask if you want anything else.<br>
     - wolf/owner.
     </div>
   </div>
@@ -578,38 +536,6 @@ Not connected.
 </div>
 
 <div class="chat-container">
-<div id="loginScreen" style="
-position:fixed;
-inset:0;
-background:black;
-display:flex;
-justify-content:center;
-align-items:center;
-z-index:9999;
-">
-
-<div style="
-background:#020617;
-border:2px solid #1e3a8a;
-padding:20px;
-width:320px;
-">
-
-<h3 style="margin-bottom:10px;">login</h3>
-
-<label>Email</label>
-<input id="loginEmail" type="email">
-
-<label>Password</label>
-<input id="loginPassword" type="password">
-
-<button id="loginBtn" style="margin-top:10px;">login</button>
-<button id="signupBtn" style="margin-top:6px;">create account</button>
-
-<div id="loginFeedback"></div>
-
-</div>
-</div>
 <div class="chat-loading" id="chatLoading">
 <div class="loader"></div>
 <span>Loading messages...</span>
@@ -617,125 +543,25 @@ width:320px;
 <div class="chat-box" id="chatBox"></div>
 <div class="input-box">
 <div class="connection-indicator" id="connectionIndicator" title="Checking connection..."></div>
-<button id="emojiBtn">😀</button>
 <input id="messageInput" placeholder="TYPE MESSAGE...">
 <button onclick="sendMessage()">SEND</button>
-
 </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/jsmediatags@3.9.5/dist/jsmediatags.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/twemoji.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>
-
-
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-import {
-  getDatabase,
-  ref,
-  push,
-  set,
-  onChildAdded,
-  remove,
-  child,
-  query,
-  limitToLast,
-  onValue,
-  onChildRemoved
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+getDatabase, ref, push, onChildAdded, remove, child, query, limitToLast, onValue
+} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
 
 /* Firebase setup */
-const firebaseConfig = {
-    apiKey: "AIzaSyBg5DGLubsHuH3ub3AtzpRenSMH6x1hZPs",
-    authDomain: "wolfchatlol.firebaseapp.com",
-    databaseURL: "https://wolfchatlol-default-rtdb.firebaseio.com",
-    projectId: "wolfchatlol",
-    storageBucket: "wolfchatlol.firebasestorage.app",
-    messagingSenderId: "654485297853",
-    appId: "1:654485297853:web:6f08ff3c2e102fbed275d4",
-    measurementId: "G-7S4G16W26R"
-  };
+const firebaseConfig = { apiKey:"AIzaSyA1o5lWz_Jfc3zI0BIkTKq7jFcqfugUyRA", authDomain:"w0lfchat.firebaseapp.com", databaseURL:"https://w0lfchat-default-rtdb.firebaseio.com/", projectId:"w0lfchat", storageBucket:"w0lfchat.firebasestorage.app", messagingSenderId:"450627197800", appId:"1:450627197800:web:facda7859980f4e570d4dd" };
 const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
-const auth = getAuth(app);
-const JSONBIN_BASE_URL = "https://api.jsonbin.io/v3/b";
-const JSONBIN_ACCESS_KEY = "$2a$10$T1k9bIUQG/tPk563G8sJuesPsLleH8yDlcCYGvL0M1q8IHQqwQxe6";
-
-function getJsonBinAccessKey() {
-  return localStorage.getItem("jsonbinAccessKey") || JSONBIN_ACCESS_KEY;
-}
-
-import { get, ref as dbRef } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-get(dbRef(db, "messages")).then(snap => {
-  console.log("TEST READ:", snap.exists(), snap.val());
-}).catch(err => {
-  console.error("READ FAILED:", err);
-});
-
-const renderedMessages = new Set();
-
 const messagesRootRef = ref(db, "messages");
-const messagesQuery = query(messagesRootRef, limitToLast(50));
-
-onChildAdded(messagesQuery, async (snap) => {
-  const msg = snap.val();
-  const key = snap.key;
-
-  if (renderedMessages.has(key)) return;
-  renderedMessages.add(key);
-
-  let username = msg.username;
-  let pfp = msg.pfp;
-  let extraData = { uid: msg.uid, name: username || "PLAYER" };
-
-  try {
-    let profile = null;
-
-    if (msg.profileUrl) {
-      profile = await fetchProfileByUrl(msg.profileUrl);
-    }
-
-    if (!profile && msg.uid) {
-      profile = await getProfileFromAccount(msg.uid);
-    }
-
-    if (profile) {
-      username = profile.username || username || "PLAYER";
-      pfp = profile.pfp || pfp || "https://via.placeholder.com/36";
-      extraData = { ...profile, uid: msg.uid, name: username };
-    } else {
-      username = username || "PLAYER";
-      pfp = pfp || "https://via.placeholder.com/36";
-      extraData = { uid: msg.uid, name: username };
-    }
-  } catch (e) {
-    console.error("Profile fetch failed:", e);
-    username = username || "PLAYER";
-    pfp = pfp || "https://via.placeholder.com/36";
-    extraData = { uid: msg.uid, name: username };
-  }
-
-  addMessage(
-    username,
-    msg.text,
-    pfp,
-    new Date(msg.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    key,
-    extraData
-  );
-});
+const messagesQuery = query(messagesRootRef, limitToLast(100));
 
 /* Connection Indicator */
 const connectionIndicator = document.getElementById("connectionIndicator");
@@ -772,74 +598,8 @@ let username = localStorage.getItem("username");
 let userPFP = localStorage.getItem("pfp");
 let isOwner=false;
 let firstMessageLoaded=false;
-
-const profileCache = {};
+const renderedMessages = new Set();
 let lastNowPlaying = null; // tracks last track sent to chat
-
-function shouldAutoScroll() {
-  const threshold = 80;
-  return chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < threshold;
-}
-
-async function fetchProfileByUrl(profileUrl) {
-  if (!profileUrl) return null;
-  if (profileCache[profileUrl]) return profileCache[profileUrl];
-
-  const jsonBinKey = getJsonBinAccessKey();
-  if (!jsonBinKey) {
-    return null;
-  }
-
-  try {
-    const res = await fetch(profileUrl, {
-      headers: { "X-Access-Key": jsonBinKey }
-    });
-    if (!res.ok) return null;
-    const payload = await res.json();
-    const profile = payload.record || null;
-    if (profile) profileCache[profileUrl] = profile;
-    return profile;
-  } catch (error) {
-    console.error("JSONBin read failed:", error);
-    return null;
-  }
-}
-
-async function upsertProfileToJsonBin(profileData) {
-  const jsonBinKey = getJsonBinAccessKey();
-  if (!jsonBinKey) {
-    showStatusPopup("Set localStorage.jsonbinAccessKey first.", 3500);
-    throw new Error("Missing JSONBin access key.");
-  }
-
-  const existingBinId = localStorage.getItem("profileBinId");
-  const url = existingBinId ? `${JSONBIN_BASE_URL}/${existingBinId}` : JSONBIN_BASE_URL;
-  const method = existingBinId ? "PUT" : "POST";
-
-  const res = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-Access-Key": jsonBinKey
-    },
-    body: JSON.stringify(profileData)
-  });
-
-  if (!res.ok) {
-    throw new Error(`JSONBin write failed with status ${res.status}`);
-  }
-
-  const payload = await res.json();
-  const binId = payload.metadata?.id || existingBinId;
-  if (!binId) throw new Error("JSONBin response missing bin id.");
-
-  const profileUrl = `${JSONBIN_BASE_URL}/${binId}/latest`;
-  localStorage.setItem("profileBinId", binId);
-  localStorage.setItem("profileUrl", profileUrl);
-  profileCache[profileUrl] = profileData;
-
-  return { binId, profileUrl };
-}
 
 // --- PAGE TITLE NOTIFICATIONS ---
 const originalTitle = document.title;
@@ -861,12 +621,9 @@ messageInput.addEventListener("keydown", e=>{ if(e.key==="Enter"&&!e.shiftKey){ 
 function timeNow(){ return new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}); }
 
 function addMessage(name,text,img,time,key,data){
-const stickToBottom = shouldAutoScroll();
 const m=document.createElement("div");
-const side = (auth.currentUser && data.uid === auth.currentUser.uid)
-  ? "user"
-  : "other";
-  m.className=`message ${side}`;
+const side=name===username?"user":"other";
+m.className=`message ${side}`;
 m.dataset.key=key;
 let ownerStar = (name==="wolf")?'<span class="owner-star">★</span>':'';
 let bubbleHTML = `
@@ -882,11 +639,15 @@ ${side==="user"?`<img src="${img}" class="clickable-avatar">`:``}
 m.innerHTML = bubbleHTML;
 
 m.querySelectorAll(".clickable-avatar").forEach(avatar=>{
-avatar.onclick = () => openProfile({
-  name: name,
-  ...data
+  avatar.onclick = () => openProfile(data);
 });
 
+// Close profile modal when clicking outside the card
+const profileModal = document.getElementById("profileModal");
+profileModal.addEventListener("click", (e) => {
+  if (e.target === profileModal) {
+    profileModal.classList.remove("active");
+  }
 });
 
 if(side==="user"||isOwner){
@@ -896,16 +657,7 @@ delBtn.onclick=()=>{ remove(child(ref(db,"messages"),key)); m.remove(); };
 m.querySelector(".bubble").appendChild(delBtn);
 }
 chatBox.appendChild(m);
-
-const bubble = m.querySelector(".bubble");
-bubble.innerHTML = twemoji.parse(bubble.innerHTML, {
-  folder: "svg",
-  ext: ".svg"
-});
-
-if (stickToBottom) {
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
+chatBox.scrollTop=chatBox.scrollHeight;
 
 if(!firstMessageLoaded){
 firstMessageLoaded=true;
@@ -915,79 +667,60 @@ setTimeout(()=>{ chatLoading.style.display="none"; },500);
 }
 }
 
-setTimeout(() => {
-  if (!firstMessageLoaded) {
-    chatLoading.style.opacity = 0;
-    chatBox.classList.add("loaded");
-    setTimeout(() => {
-      chatLoading.style.display = "none";
-    }, 500);
-  }
-}, 1500);
-
-async function getProfileFromAccount(uid) {
-  try {
-    const snap = await get(ref(db, "profiles/" + uid));
-    if (snap.exists()) {
-      const profileRefData = snap.val();
-      if (profileRefData?.profileUrl) {
-        const fromJsonBin = await fetchProfileByUrl(profileRefData.profileUrl);
-        if (fromJsonBin) return fromJsonBin;
-      }
-      if (profileRefData?.profileData && typeof profileRefData.profileData === "object") {
-        return profileRefData.profileData;
-      }
-      return profileRefData || {};
-    } else {
-      return {};
-    }
-  } catch (e) {
-    console.error("Profile fetch failed:", e);
-    return {};
-  }
-}
-
-window.sendMessage = async () => {
-  if (!auth.currentUser) {
-    showStatusPopup("You must be logged in to send messages.", 2000);
-    return;
-  }
-
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  messageInput.value = "";
-
-  const uid = auth.currentUser.uid;
-
-  const profile = await getProfileFromAccount(uid);
-
-  const finalUsername =
-    profile.username ||
-    localStorage.getItem("username") ||
-    "PLAYER";
-
-  const finalPfp =
-    profile.pfp ||
-    localStorage.getItem("pfp") ||
-    "https://via.placeholder.com/36";
-
-  const profileUrl =
-    profile.profileUrl ||
-    localStorage.getItem("profileUrl") ||
-    null;
+window.sendMessage = () => {
+  if (!messageInput.value.trim()) return;
+    let msgCount = Number(localStorage.getItem("messageCount") || 0);
+    msgCount++;
+    localStorage.setItem("messageCount", msgCount);
 
   push(messagesRootRef, {
-    uid,
-    text,
-    ts: Date.now(),
-    profileUrl,
-    username: finalUsername,
-    pfp: finalPfp
-  });
+  name: username,
+  displayName: localStorage.getItem("displayName") || username,
+  pronouns: localStorage.getItem("pronouns") || "",
+  bio: localStorage.getItem("bio") || "",
+  status: localStorage.getItem("status") || "",
+  lastFmUser: localStorage.getItem("lastFmUser") || null,
+  banner: localStorage.getItem("banner") || null,
+  profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
+  profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
+  
+  badges: JSON.parse(localStorage.getItem("badges") || "[]"),
+  joinDate: localStorage.getItem("joinDate") || new Date().toISOString(),
+  messageCount: Number(localStorage.getItem("messageCount") || 0),
+  socials: JSON.parse(localStorage.getItem("socials") || "{}"),
+  favoriteSong: localStorage.getItem("favoriteSong") || "",
+  
+  text: messageInput.value,
+  img: userPFP,
+  time: timeNow(),
+  ts: Date.now()
+});
+
+  messageInput.value = "";
 };
 
-onChildRemoved(ref(db,"messages"), snap => {
+onChildAdded(messagesQuery, snap => {
+
+  const m = snap.val();
+
+  addMessage(
+    m.name || "PLAYER",
+    m.text || "",
+    m.img || "https://via.placeholder.com/36",
+    m.time || timeNow(),
+    snap.key,
+    m
+  );
+
+  if (!windowFocused && m.name !== username) {
+    unreadCount++;
+    document.title = `(${unreadCount}) ${originalTitle}`;
+  }
+});
+
+import { onChildRemoved } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-database.js";
+
+onChildRemoved(messagesRootRef, snap => {
   const key = snap.key;
   const msgElem = chatBox.querySelector(`.message[data-key="${key}"]`);
   if (msgElem) {
@@ -1029,81 +762,35 @@ window.saveProfile = () => {
     };
     reader.readAsDataURL(pfpUpload.files[0]);
   }
-  saveProfileToAccount();
+
   alert("Profile saved!");
 };
 
 /* CUSTOM TAB BUTTONS */
-function safeSetLocalStorage(key, value) {
-  try {
-    localStorage.setItem(key, value);
-    return true;
-  } catch (err) {
-    console.error(`Failed to save ${key} locally:`, err);
-    showStatusPopup("Storage is full. Use a smaller image and try again.", 3200);
-    return false;
-  }
-}
-
-function optimizeImageFile(file, {
-  maxWidth = 1400,
-  maxHeight = 500,
-  mimeType = "image/jpeg",
-  quality = 0.82
-} = {}) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const img = new Image();
-      img.onload = () => {
-        const scale = Math.min(maxWidth / img.width, maxHeight / img.height, 1);
-        const width = Math.max(1, Math.round(img.width * scale));
-        const height = Math.max(1, Math.round(img.height * scale));
-
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return reject(new Error("Canvas unavailable."));
-
-        ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL(mimeType, quality));
-      };
-      img.onerror = () => reject(new Error("Invalid image file."));
-      img.src = e.target.result;
-    };
-    reader.onerror = () => reject(new Error("Failed to read file."));
-    reader.readAsDataURL(file);
-  });
-}
 
 document.getElementById("setUsernameBtn").onclick = () => {
   const val = document.getElementById("usernameInput").value.trim();
   if (!val) return;
   username = val;
   localStorage.setItem("username", val);
-  saveProfileToAccount();
   alert("Username updated.");
 };
 
 document.getElementById("setDisplayNameBtn").onclick = () => {
   const val = document.getElementById("displayNameInput").value.trim();
   localStorage.setItem("displayName", val);
-  saveProfileToAccount();
   alert("Display name updated.");
 };
 
 document.getElementById("setPronounsBtn").onclick = () => {
   const val = document.getElementById("pronounsInput").value.trim();
   localStorage.setItem("pronouns", val);
-  saveProfileToAccount();
   alert("Pronouns updated.");
 };
 
 document.getElementById("setBioBtn").onclick = () => {
   const val = document.getElementById("bioInput").value.trim();
   localStorage.setItem("bio", val);
-  saveProfileToAccount();
   alert("Bio updated.");
 };
 
@@ -1115,7 +802,6 @@ document.getElementById("setPfpBtn").onclick = () => {
   reader.onload = e => {
     userPFP = e.target.result;
     localStorage.setItem("pfp", userPFP);
-    saveProfileToAccount();
     alert("Profile picture updated.");
   };
   reader.readAsDataURL(file);
@@ -1125,76 +811,47 @@ document.getElementById("setBannerBtn").onclick = () => {
   const file = document.getElementById("bannerUpload").files[0];
   if (!file) return alert("Select a banner first.");
 
-  optimizeImageFile(file).then(optimizedBanner => {
-    if (!safeSetLocalStorage("banner", optimizedBanner)) return;
-    saveProfileToAccount();
+  const reader = new FileReader();
+  reader.onload = e => {
+    localStorage.setItem("banner", e.target.result);
     alert("Banner updated.");
-  }).catch(err => {
-    console.error("Banner processing failed:", err);
-    showStatusPopup("Couldn't process banner image.", 2600);
-  });
+  };
+  reader.readAsDataURL(file);
 };
 
 document.getElementById("setColorBtn").onclick = () => {
   const val = document.getElementById("colorPicker").value;
   localStorage.setItem("profileColor", val);
-  saveProfileToAccount();
   alert("Profile color updated.");
 };
 
 document.getElementById("setCardBgBtn").onclick = () => {
   const color = document.getElementById("cardBgColorPicker").value;
 
-  // Save to localStorage
-  if (!safeSetLocalStorage("profileCardBg", color)) return;
+  localStorage.setItem("profileCardBg", color);
 
-  // Update profile card background immediately
   const profileCard = document.querySelector(".profile-card");
   if (profileCard) {
     profileCard.style.background = color;
   }
 
-  saveProfileToAccount();
   showStatusPopup("Profile background updated!");
 };
 
 document.getElementById("setColorBtn").onclick = () => {
-  const color = document.getElementById("colorPicker").value;
+  const val = document.getElementById("colorPicker").value;
+  localStorage.setItem("profileColor", val);
 
-  // Save to localStorage
-  if (!safeSetLocalStorage("profileColor", color)) return;
-
-  // Update profile card border immediately
+  // Update the profile card border if modal is open
   const profileCard = document.querySelector(".profile-card");
-  if (profileCard) {
-    profileCard.style.borderColor = color;
+  if(profileCard){
+    profileCard.style.borderColor = val;
   }
 
-  saveProfileToAccount();
   showStatusPopup("Profile color updated!");
 };
 
 function getProfileLayout() {
-  const parseStoredJson = (key, fallback) => {
-    const raw = localStorage.getItem(key);
-    if (raw === null || raw === undefined || raw === "") return fallback;
-
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed === null || parsed === undefined) return fallback;
-      return parsed;
-    } catch {
-      // Backward compatibility for older/plain-string storage formats.
-      if (key === "badges") {
-        return raw
-          .split(",")
-          .map(v => v.trim())
-          .filter(Boolean);
-      }
-      return fallback;
-    }
-  };
-
   return {
     username: localStorage.getItem("username") || "",
     displayName: localStorage.getItem("displayName") || "",
@@ -1205,50 +862,8 @@ function getProfileLayout() {
     profileColor: localStorage.getItem("profileColor") || "#1e3a8a",
     profileCardBg: localStorage.getItem("profileCardBg") || "#111111",
     pfp: localStorage.getItem("pfp") || "",
-    lastFmUser: localStorage.getItem("lastFmUser") || "",
-    badges: parseStoredJson("badges", []),
-    joinDate: localStorage.getItem("joinDate") || "",
-    socials: parseStoredJson("socials", {}),
-    favoriteSong: localStorage.getItem("favoriteSong") || "",
-    messageCount: parseInt(localStorage.getItem("messageCount") || "0")
+    lastFmUser: localStorage.getItem("lastFmUser") || ""
   };
-}
-
-const MAX_PROFILE_IMAGE_BYTES = 900 * 1024; // keep profile docs well under remote payload limits
-
-function estimateDataUrlBytes(value) {
-  if (typeof value !== "string" || !value.startsWith("data:")) return 0;
-  const commaIndex = value.indexOf(",");
-  if (commaIndex === -1) return value.length;
-
-  const meta = value.slice(0, commaIndex);
-  const payload = value.slice(commaIndex + 1);
-
-  if (meta.includes(";base64")) {
-    const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
-    return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
-  }
-
-  try {
-    return decodeURIComponent(payload).length;
-  } catch {
-    return payload.length;
-  }
-}
-
-function getSyncSafeProfileData(layout) {
-  const syncData = { ...layout };
-  const droppedFields = [];
-
-  ["pfp", "banner"].forEach(field => {
-    const bytes = estimateDataUrlBytes(syncData[field]);
-    if (bytes > MAX_PROFILE_IMAGE_BYTES) {
-      syncData[field] = "";
-      droppedFields.push(field);
-    }
-  });
-
-  return { syncData, droppedFields };
 }
 
 function hydrateProfileFields(layout) {
@@ -1325,7 +940,6 @@ document.getElementById("importLayoutBtn").onclick = () => {
 document.getElementById("setStatusBtn").onclick = () => {
   const val = document.getElementById("statusInput").value.trim();
   localStorage.setItem("status", val);
-  saveProfileToAccount();
   alert("Status updated.");
 };
 
@@ -1333,7 +947,6 @@ document.getElementById("setJoinDateBtn").onclick = () => {
   const val = document.getElementById("joinDateInput").value;
   if (!val) return;
   localStorage.setItem("joinDate", val);
-  saveProfileToAccount();
   alert("Join date updated.");
 };
 
@@ -1341,14 +954,12 @@ document.getElementById("setBadgesBtn").onclick = () => {
   const val = document.getElementById("badgesInput").value;
   const arr = val.split(",").map(b => b.trim()).filter(Boolean);
   localStorage.setItem("badges", JSON.stringify(arr));
-  saveProfileToAccount();
   alert("Badges updated.");
 };
 
 document.getElementById("setFavoriteSongBtn").onclick = () => {
   const val = document.getElementById("favoriteSongInput").value.trim();
   localStorage.setItem("favoriteSong", val);
-  saveProfileToAccount();
   alert("Favorite song updated.");
 };
 
@@ -1358,15 +969,14 @@ document.getElementById("setSocialsBtn").onclick = () => {
     github: document.getElementById("githubInput").value.trim()
   };
   localStorage.setItem("socials", JSON.stringify(socials));
-  saveProfileToAccount();
   alert("Social links saved.");
 };
 
 async function openProfile(data){
   if(!data) return;
 
-document.getElementById("profileAvatar").src = data.pfp || "https://via.placeholder.com/80";
-const bannerDiv = document.querySelector(".profile-banner");
+  document.getElementById("profileAvatar").src = data.img;
+  const bannerDiv = document.querySelector(".profile-banner");
 
 if (data.banner) {
   bannerDiv.style.background = `url(${data.banner}) center/cover`;
@@ -1556,9 +1166,9 @@ document.getElementById("setLastFmBtn").onclick = async () => {
 
         // ✅ Account exists — save it
         localStorage.setItem("lastFmUser", extractedUsername);
-        lastFmStatus.textContent = `Connected as ${extractedUsername}`
+        lastFmStatus.textContent = `Connected as ${extractedUsername}`;
         showStatusPopup("Connected!");
-        saveProfileToAccount();
+
         updateLastFmPresence();
 
     } catch(e) {
@@ -1611,17 +1221,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
   hydrateProfileFields(getProfileLayout());
 });
-
-// Close profile modal when clicking outside
-const profileModal = document.getElementById("profileModal");
-
-if (profileModal) {
-  profileModal.addEventListener("click", (e) => {
-    if (e.target === profileModal) {
-      profileModal.classList.remove("active");
-    }
-  });
-}
 
 document.getElementById("firstCreateBtn").onclick = () => {
   const name = document.getElementById("firstUsername").value.trim();
@@ -1692,243 +1291,6 @@ enterBtn.onclick = () => {
   }, 800);
 };
 
-/* GOOGLE LOGIN */
-
-window.handleGoogleLogin = function(response){
-
-  const payload = JSON.parse(atob(response.credential.split(".")[1]));
-
-  const email = payload.email;
-  const name = payload.name;
-  const picture = payload.picture;
-
-  localStorage.setItem("googleUser", email);
-
-  if(!localStorage.getItem("username")){
-    username = name;
-    localStorage.setItem("username", name);
-  }
-
-  if(!localStorage.getItem("pfp")){
-    userPFP = picture;
-    localStorage.setItem("pfp", picture);
-  }
-
-  document.getElementById("googleLoginOverlay").style.display = "none";
-
-};
-
-const loginScreen = document.getElementById("loginScreen");
-const loginBtn = document.getElementById("loginBtn");
-const signupBtn = document.getElementById("signupBtn");
-const loginFeedback = document.getElementById("loginFeedback");
-
-loginBtn.onclick = async () => {
-
-const email = document.getElementById("loginEmail").value;
-const password = document.getElementById("loginPassword").value;
-
-try{
-await signInWithEmailAndPassword(auth,email,password);
-loginFeedback.textContent="logged in!";
-loginFeedback.style.color="lightgreen";
-}catch(err){
-loginFeedback.textContent=err.message;
-loginFeedback.style.color="red";
-}
-
-};
-
-signupBtn.onclick = async () => {
-
-const email = document.getElementById("loginEmail").value;
-const password = document.getElementById("loginPassword").value;
-
-try{
-await createUserWithEmailAndPassword(auth,email,password);
-loginFeedback.textContent="account created!";
-loginFeedback.style.color="lightgreen";
-}catch(err){
-loginFeedback.textContent=err.message;
-loginFeedback.style.color="red";
-}
-
-};
-
-onAuthStateChanged(auth,(user)=>{
-if(user){
-loginScreen.style.display="none";
-}else{
-loginScreen.style.display="flex";
-}
-});
-
-const authStatus=document.getElementById("authStatus");
-
-document.getElementById("loginAccountBtn").onclick=async()=>{
-
-const email=document.getElementById("authEmail").value;
-const pass=document.getElementById("authPassword").value;
-
-try{
-await signInWithEmailAndPassword(auth,email,pass);
-showStatusPopup("Logged in!");
-}catch(err){
-showStatusPopup(err.message,3000);
-}
-
-};
-
-document.getElementById("signupAccountBtn").onclick=async()=>{
-
-const email=document.getElementById("authEmail").value;
-const pass=document.getElementById("authPassword").value;
-
-try{
-await createUserWithEmailAndPassword(auth,email,pass);
-showStatusPopup("Account created!");
-
-migrateLocalProfile();
-
-}catch(err){
-showStatusPopup(err.message,3000);
-}
-
-};
-
-document.getElementById("logoutAccountBtn").onclick=()=>{
-signOut(auth);
-showStatusPopup("Logged out");
-};
-
-onAuthStateChanged(auth,(user)=>{
-
-if(user){
-authStatus.textContent="Logged in as "+user.email;
-}else{
-authStatus.textContent="Not logged in";
-}
-
-});
-
-function migrateLocalProfile(){
-  if(!auth.currentUser) return;
-
-  saveProfileToAccount();
-}
-
-async function saveProfileToAccount() {
-  if (!auth.currentUser) return;
-
-  try {
-    const uid = auth.currentUser.uid;
-    const localProfileData = getProfileLayout();
-    const { syncData: profileData, droppedFields } = getSyncSafeProfileData(localProfileData);
-    const profileDoc = {
-      uid,
-      profileData,
-      updatedAt: Date.now()
-    };
-
-    try {
-      const pointer = await upsertProfileToJsonBin(profileData);
-      profileDoc.profileUrl = pointer.profileUrl;
-      profileDoc.profileBinId = pointer.binId;
-    } catch (jsonBinError) {
-      console.warn("JSONBin unavailable, saving profile directly to Firebase.", jsonBinError);
-    }
-
-    await set(ref(db, `profiles/${uid}`), profileDoc);
-
-    if (droppedFields.length) {
-      showStatusPopup("Saved, but large image data was skipped for cloud sync.", 3200);
-    }
-
-    console.log("Profile saved to account storage.");
-  } catch (err) {
-    console.error("Failed to save profile:", err);
-    showStatusPopup("Profile save failed.", 2500);
-  }
-}
-
-
-onAuthStateChanged(auth,(user)=>{
-
-if(!user) return;
-
-const profileRef=ref(db,"profiles/"+user.uid);
-
-onValue(profileRef, async (snap)=>{
-  if(!snap.exists()) return;
-
-  const data = snap.val();
-  if (data.profileUrl) {
-    localStorage.setItem("profileUrl", data.profileUrl);
-  }
-  if (data.profileBinId) {
-    localStorage.setItem("profileBinId", data.profileBinId);
-  }
-
-  const profileData = data.profileUrl ? await fetchProfileByUrl(data.profileUrl) : null;
-  const resolvedProfileData =
-    profileData ||
-    (data.profileData && typeof data.profileData === "object" ? data.profileData : null);
-
-  if (resolvedProfileData) {
-    Object.keys(resolvedProfileData).forEach(k => {
-      if (resolvedProfileData[k] !== undefined && resolvedProfileData[k] !== null) {
-        if (typeof resolvedProfileData[k] === "object") {
-          localStorage.setItem(k, JSON.stringify(resolvedProfileData[k]));
-        } else {
-          localStorage.setItem(k, resolvedProfileData[k]);
-        }
-      }
-    });
-  }
-
-  hydrateProfileFields(getProfileLayout());
-});
-
-window.addEventListener("load",()=>{
-
-if(localStorage.getItem("username") && !auth.currentUser){
-
-setTimeout(()=>{
-alert("Hey! wolfchat is adding accounts.\n\nPlease sign up with an email + password.\n\nYour profile will be saved to your account and synced across devices.");
-},2000);
-
-}
-
-});
-
-});
-
-/* EMOJI PICKER */
-
-window.addEventListener("DOMContentLoaded", () => {
-
-  const emojiBtn = document.getElementById("emojiBtn");
-  const emojiPickerContainer = document.getElementById("emojiPicker");
-
-  const picker = new EmojiMart.Picker({
-    theme: "dark",
-    previewPosition: "none",
-    onEmojiSelect: (emoji) => {
-      messageInput.value += emoji.native;
-    }
-  });
-
-  emojiPickerContainer.appendChild(picker);
-
-  emojiBtn.onclick = () => {
-    emojiPickerContainer.style.display =
-      emojiPickerContainer.style.display === "block"
-        ? "none"
-        : "block";
-  };
-
-});
-
 </script>
 
 <div id="profileModal" class="profile-modal">
@@ -1984,14 +1346,6 @@ window.addEventListener("DOMContentLoaded", () => {
     </div>
   </div>
 </div>
-
-<div id="emojiPicker" style="
-position: fixed;
-bottom: 80px;
-left: 20px;
-display:none;
-z-index:4000;
-"></div>
 
 </body>
 </html>
